@@ -94,3 +94,6 @@ none
 
 ### Session marker — 2026-04-12 21:47
 (auto-captured — session ended)
+
+### Session marker — 2026-04-12 21:51
+(auto-captured — session ended)

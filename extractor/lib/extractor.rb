@@ -9,6 +9,7 @@ require_relative "detectors/cs_state_detector"
 require_relative "detectors/roam_detector"
 require_relative "detectors/teamfight_detector"
 require_relative "detectors/objective_detector"
+require_relative "detectors/position_tracker"
 require_relative "formatters/review_formatter"
 
 class Extractor
@@ -48,11 +49,33 @@ class Extractor
       enrich_with_live_data(context, timeline_events)
     end
 
+    # Track positions
+    tracker = PositionTracker.new(context)
+    my_positions = tracker.player_positions(context.my_participant_id)
+
+    # Enrich deaths with nearby player positions
+    timeline_events.select { |e| e[:type] == "DEATH" }.each do |death|
+      minute = (death[:time_seconds] / 60.0).round(0)
+      all_pos = tracker.all_positions_at(minute)
+      death[:nearby_enemies] = all_pos.select { |p| p[:team] != context.my_team }
+        .map { |p| { champion: p[:champion], zone: p[:zone] } }
+    end
+
+    # Enrich objectives with player presence
+    timeline_events.select { |e| e[:type] == "OBJECTIVE" }.each do |obj|
+      minute = (obj[:time_seconds] / 60.0).round(0)
+      my_pos = my_positions.find { |p| p[:time_min].round(0) == minute }
+      if my_pos
+        obj[:your_zone] = my_pos[:zone]
+        obj[:you_present] = tracker.near_objective?(my_pos[:x], my_pos[:y], obj[:monster])
+      end
+    end
+
     # Sort by time
     timeline_events.sort_by! { |e| e[:time_seconds] }
 
     # Format output
-    ReviewFormatter.new(context, timeline_events, @item_resolver).format
+    ReviewFormatter.new(context, timeline_events, @item_resolver, my_positions).format
   end
 
   private

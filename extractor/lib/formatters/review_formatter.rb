@@ -1,10 +1,11 @@
 require "json"
 
 class ReviewFormatter
-  def initialize(context, timeline_events, item_resolver = nil)
+  def initialize(context, timeline_events, item_resolver = nil, positions = nil)
     @context = context
     @timeline_events = timeline_events
     @item_resolver = item_resolver
+    @positions = positions || []
   end
 
   def format
@@ -13,7 +14,8 @@ class ReviewFormatter
       final_stats: build_final_stats,
       timeline: @timeline_events,
       patterns: build_patterns,
-      gold_curve: build_gold_curve
+      gold_curve: build_gold_curve,
+      position_map: build_position_map
     }
   end
 
@@ -131,6 +133,12 @@ class ReviewFormatter
     return nil unless my
     @context.participants.find do |p|
       p["teamPosition"] == my["teamPosition"] && p["teamId"] != my["teamId"]
+    end
+  end
+
+  def build_position_map
+    @positions.map do |p|
+      { time_min: p[:time_min], zone: p[:zone], x: p[:x], y: p[:y] }
     end
   end
 
