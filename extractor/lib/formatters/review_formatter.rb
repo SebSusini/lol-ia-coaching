@@ -93,7 +93,13 @@ class ReviewFormatter
       objectives_your_team: objectives.count { |o| o[:taken_by] == "YOUR_TEAM" },
       objectives_enemy: objectives.count { |o| o[:taken_by] == "ENEMY_TEAM" },
       roams_attempted: roams.size,
-      roams_successful: roams.count { |r| r[:result] == "KILL" }
+      roams_successful: roams.count { |r| r[:result] == "KILL" },
+      # V4 patterns
+      jungler_ganks_near_you: build_jungler_pattern,
+      vision_score_rating: build_vision_rating,
+      item_spike_delay: build_item_spike_delay,
+      momentum_shifts: @timeline_events.count { |e| e[:type] == "MOMENTUM_SHIFT" },
+      damage_efficiency_verdict: build_damage_verdict
     }
   end
 
@@ -134,6 +140,43 @@ class ReviewFormatter
     @context.participants.find do |p|
       p["teamPosition"] == my["teamPosition"] && p["teamId"] != my["teamId"]
     end
+  end
+
+  def build_jungler_pattern
+    jungler_events = @timeline_events.select { |e| e[:type] == "JUNGLER_POSITION" && e[:near_you] }
+    jungler_events.size
+  end
+
+  def build_vision_rating
+    p = find_my_participant
+    return "unknown" unless p
+
+    vision_score = p["visionScore"] || 0
+    game_minutes = @context.game_duration_seconds / 60.0
+
+    # Vision score per minute is the standard metric
+    vs_per_min = vision_score / game_minutes
+
+    if vs_per_min >= 1.5
+      "good"
+    elsif vs_per_min >= 0.8
+      "average"
+    else
+      "poor"
+    end
+  end
+
+  def build_item_spike_delay
+    item_spikes = @timeline_events.select { |e| e[:type] == "ITEM_SPIKE" && e[:who] == "YOU" && e[:time_advantage] }
+    return nil if item_spikes.empty?
+
+    avg_delay = item_spikes.sum { |s| s[:time_advantage] } / item_spikes.size.to_f
+    avg_delay.round(0)
+  end
+
+  def build_damage_verdict
+    dmg_event = @timeline_events.find { |e| e[:type] == "DAMAGE_EFFICIENCY" }
+    dmg_event ? dmg_event[:verdict] : nil
   end
 
   def build_position_map

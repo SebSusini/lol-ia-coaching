@@ -10,6 +10,12 @@ require_relative "detectors/roam_detector"
 require_relative "detectors/teamfight_detector"
 require_relative "detectors/objective_detector"
 require_relative "detectors/position_tracker"
+require_relative "detectors/jungler_tracker"
+require_relative "detectors/ward_tracker"
+require_relative "detectors/item_spike_detector"
+require_relative "detectors/lane_state_detector"
+require_relative "detectors/comeback_detector"
+require_relative "detectors/damage_efficiency_detector"
 require_relative "formatters/review_formatter"
 
 class Extractor
@@ -32,6 +38,14 @@ class Extractor
     timeline_events += RoamDetector.new(context, filtered).detect
     timeline_events += TeamfightDetector.new(context, filtered).detect
     timeline_events += ObjectiveDetector.new(context, filtered).detect
+
+    # Run new detectors (V4)
+    timeline_events += JunglerTracker.new(context).detect
+    timeline_events += WardTracker.new(context).detect
+    timeline_events += ItemSpikeDetector.new(context, @item_resolver).detect
+    timeline_events += LaneStateDetector.new(context).detect
+    timeline_events += ComebackDetector.new(context).detect
+    timeline_events += DamageEfficiencyDetector.new(context).detect
 
     # Enrich deaths with position classification
     classifier = DeathPositionClassifier.new(context.my_team || "Blue")
