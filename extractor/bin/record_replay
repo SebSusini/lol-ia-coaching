@@ -1,0 +1,138 @@
+#!/usr/bin/env ruby
+
+# Records live data from the LoL client replay API (localhost:2999)
+# Polls every 2 seconds and saves snapshots to a JSON file
+# Auto-saves when the game ends or the client disconnects
+
+require "net/http"
+require "json"
+require "uri"
+require "openssl"
+
+OUTPUT_FILE = ARGV[0] || "output/live_replay_data.json"
+POLL_INTERVAL = 2 # seconds
+
+def fetch(path)
+  uri = URI("https://127.0.0.1:2999#{path}")
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  http.open_timeout = 3
+  http.read_timeout = 3
+
+  request = Net::HTTP::Get.new(uri)
+  response = http.request(request)
+  JSON.parse(response.body)
+rescue => e
+  nil
+end
+
+def save_recording(snapshots, events)
+  result = {
+    recording_info: {
+      snapshots_count: snapshots.size,
+      poll_interval: POLL_INTERVAL,
+      first_timestamp: snapshots.first&.dig(:gameTime),
+      last_timestamp: snapshots.last&.dig(:gameTime)
+    },
+    events: events,
+    snapshots: snapshots
+  }
+
+  File.write(OUTPUT_FILE, JSON.pretty_generate(result))
+  size_kb = (File.size(OUTPUT_FILE) / 1024.0).round(1)
+  puts "\nSaved #{snapshots.size} snapshots to #{OUTPUT_FILE} (#{size_kb} KB)"
+end
+
+snapshots = []
+events = nil
+last_game_time = -1
+consecutive_failures = 0
+game_started = false
+
+puts "Recording replay data from localhost:2999..."
+puts "Output: #{OUTPUT_FILE}"
+puts "Waiting for replay to start..."
+puts ""
+
+loop do
+  data = fetch("/liveclientdata/allgamedata")
+
+  unless data
+    consecutive_failures += 1
+
+    if game_started && consecutive_failures >= 3
+      # Game ended or client closed — save and exit
+      puts "\n\nClient disconnected. Game over!"
+      events = nil # can't fetch events anymore
+      break
+    end
+
+    print "\rWaiting for replay... (attempt #{consecutive_failures})"
+    sleep POLL_INTERVAL
+    next
+  end
+
+  consecutive_failures = 0
+  game_time = data.dig("gameData", "gameTime") || 0
+
+  # Detect game end event
+  game_events = data.dig("events", "Events") || []
+  game_over = game_events.any? { |e| e["EventName"] == "GameEnd" }
+
+  if game_over && game_started
+    puts "\n\nGame ended!"
+    events = { "Events" => game_events }
+    break
+  end
+
+  if game_time <= last_game_time
+    sleep POLL_INTERVAL
+    next
+  end
+
+  game_started = true
+  last_game_time = game_time
+
+  # Extract compact snapshot
+  players = (data["allPlayers"] || []).map do |p|
+    {
+      champion: p["championName"],
+      team: p["team"],
+      position: p["position"],
+      riotId: p["riotIdGameName"],
+      level: p["level"],
+      isDead: p["isDead"],
+      respawnTimer: p["respawnTimer"],
+      scores: p["scores"],
+      items: (p["items"] || []).map { |i| { name: i["displayName"], count: i["count"], price: i["price"] } },
+      summonerSpells: {
+        one: p.dig("summonerSpells", "summonerSpellOne", "displayName"),
+        two: p.dig("summonerSpells", "summonerSpellTwo", "displayName")
+      }
+    }
+  end
+
+  snapshot = {
+    gameTime: game_time.round(1),
+    players: players
+  }
+
+  snapshots << snapshot
+
+  # Also capture events periodically
+  events = { "Events" => game_events } if game_events.any?
+
+  minutes = (game_time / 60).to_i
+  seconds = (game_time % 60).to_i
+  player_summary = players.map { |p| "#{p[:champion]}(#{p[:scores]["kills"]}/#{p[:scores]["deaths"]}/#{p[:scores]["assists"]})" }.join(" ")
+  print "\r[#{"%02d:%02d" % [minutes, seconds]}] #{snapshots.size} snapshots | #{player_summary[0..120]}"
+
+  sleep POLL_INTERVAL
+
+rescue Interrupt
+  puts "\n\nStopped by user."
+  break
+end
+
+save_recording(snapshots, events) if snapshots.any?

@@ -21,3 +21,4 @@ extractor/vendor/
 # IDE
 .vscode/
 .idea/
+decoder/
