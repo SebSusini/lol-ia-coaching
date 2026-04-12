@@ -8,8 +8,8 @@ require_relative "detectors/roam_detector"
 require_relative "formatters/review_formatter"
 
 class Extractor
-  def initialize(positions_path:, timeline_path:, summoner_name:)
-    @positions_data = JSON.parse(File.read(positions_path))
+  def initialize(timeline_path:, summoner_name:, positions_path: nil)
+    @positions_data = positions_path ? JSON.parse(File.read(positions_path)) : { "players_state" => [], "wards" => [] }
     @timeline_data = JSON.parse(File.read(timeline_path))
     @summoner_name = summoner_name
   end

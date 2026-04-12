@@ -23,7 +23,11 @@ class GameContext
   end
 
   def result
-    my_participant = @participants.find { |p| p["summonerName"].downcase == @summoner_name.downcase }
+    name_down = @summoner_name.downcase
+    my_participant = @participants.find do |p|
+      p["riotIdGameName"]&.downcase == name_down ||
+        p["summonerName"]&.downcase == name_down
+    end
     my_participant&.dig("win") ? "WIN" : "LOSS"
   end
 
@@ -53,7 +57,11 @@ class GameContext
   private
 
   def resolve_player_info
-    my_participant = @participants.find { |p| p["summonerName"].downcase == @summoner_name.downcase }
+    name_down = @summoner_name.downcase
+    my_participant = @participants.find do |p|
+      p["riotIdGameName"]&.downcase == name_down ||
+        p["summonerName"]&.downcase == name_down
+    end
 
     if my_participant
       @my_champion = my_participant["championName"]
