@@ -9,22 +9,29 @@ CLI tool that analyzes League of Legends `.rofl` replay files to generate action
 ## Architecture
 
 ```
-.rofl → [Python Decoder] → raw.json (135MB) → [Ruby Extractor] → review.json (50-100KB) → [Claude] → Review
+.rofl → [Rust Decoder (Mowokuma)] → positions.json (positions + wards)
+                                           ↓
+Match ID → [Ruby + Riot API] → timeline.json (events, kills, items)
+                                           ↓
+                                 [Ruby Extractor] → review.json (50-100KB)
+                                           ↓
+                                 [Claude Code / API] → Review
 ```
 
 ### 3 Components
 
 | Component | Language | Role | Source |
 |---|---|---|---|
-| **Decoder** | Python | Decrypt `.rofl` payload → raw JSON of 20 packet types | Fork of [Mowokuma/ROFL](https://github.com/Mowokuma/ROFL) |
-| **Extractor** | Ruby | Filter, detect patterns, compress → compact JSON | Custom code |
+| **Decoder** | Rust | Decrypt `.rofl` payload → positions (1/sec) + wards | Fork of [Mowokuma/ROFL](https://github.com/Mowokuma/ROFL) |
+| **Riot API Client** | Ruby | Fetch Match Timeline v5 → kills, items, objectives, CS/gold per minute | Custom code using Riot API |
+| **Extractor** | Ruby | Merge both sources, detect patterns, compress → compact JSON | Custom code |
 | **Reviewer** | Claude Code (manual) → Claude API (later) | Analyze gameplay → text review | Prompt engineering |
 
 ### Why this split
 
-- **Decoder in Python:** Mowokuma's code already works. Uses Unicorn Engine to emulate LoL binary decryption functions. No reason to rewrite.
+- **Decoder in Rust:** Mowokuma's code already works. Uses Unicorn Engine (Rust bindings) to emulate LoL binary decryption functions. Extracts player positions every second + ward data. No reason to rewrite.
+- **Riot API:** Complements the decoder with event-level data (kills, items, objectives) that the decoder doesn't extract.
 - **Extractor in Ruby:** This is where 80% of dev time goes (detector logic, pattern recognition). Author is a senior Ruby developer — fastest iteration in this language.
-- **135MB intermediate file:** Feature, not bug. Allows independent debugging of decoder vs extractor. Re-run extractor without re-decoding.
 
 ## Data Flow
 

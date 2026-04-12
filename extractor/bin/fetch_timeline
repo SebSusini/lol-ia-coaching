@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+
+require_relative "../lib/riot_api_client"
+require "json"
+require "optparse"
+
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: fetch_timeline [options]"
+
+  opts.on("--match-id ID", "Riot match ID (e.g. EUW1_1234567890)") { |v| options[:match_id] = v }
+  opts.on("--output FILE", "Output file path (default: stdout)") { |v| options[:output] = v }
+end.parse!
+
+unless options[:match_id]
+  puts "Error: --match-id is required"
+  exit 1
+end
+
+client = RiotApiClient.new
+
+puts "Fetching match info for #{options[:match_id]}..."
+match_info = client.match_info(options[:match_id])
+
+puts "Fetching timeline for #{options[:match_id]}..."
+timeline = client.match_timeline(options[:match_id])
+
+result = {
+  match_info: match_info,
+  timeline: timeline
+}
+
+json = JSON.pretty_generate(result)
+
+if options[:output]
+  File.write(options[:output], json)
+  puts "Written to #{options[:output]} (#{(json.bytesize / 1024.0).round(1)} KB)"
+else
+  puts json
+end

@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift(File.join(__dir__, "..", "lib"))
+
+require "extractor"
+require "optparse"
+
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: extract [options]"
+
+  opts.on("--positions FILE", "Path to Mowokuma positions JSON") { |v| options[:positions] = v }
+  opts.on("--timeline FILE", "Path to Riot API timeline JSON") { |v| options[:timeline] = v }
+  opts.on("--summoner NAME", "Your summoner name") { |v| options[:summoner] = v }
+  opts.on("--output FILE", "Output file path (default: stdout)") { |v| options[:output] = v }
+end.parse!
+
+%i[positions timeline summoner].each do |key|
+  unless options[key]
+    puts "Error: --#{key} is required"
+    exit 1
+  end
+end
+
+extractor = Extractor.new(
+  positions_path: options[:positions],
+  timeline_path: options[:timeline],
+  summoner_name: options[:summoner]
+)
+
+result = extractor.extract
+json = JSON.pretty_generate(result)
+
+if options[:output]
+  File.write(options[:output], json)
+  puts "Review JSON written to #{options[:output]} (#{(json.bytesize / 1024.0).round(1)} KB)"
+else
+  puts json
+end

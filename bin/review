@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+REPLAYS_DIR="$SCRIPT_DIR/replays"
+OUTPUT_DIR="$SCRIPT_DIR/output"
+DECODER_DIR="$SCRIPT_DIR/decoder"
+EXTRACTOR_DIR="$SCRIPT_DIR/extractor"
+
+# Load .env
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  export $(grep -v '^#' "$SCRIPT_DIR/.env" | xargs)
+fi
+
+usage() {
+  echo "Usage: bin/review <replay.rofl> [--summoner NAME]"
+  echo ""
+  echo "Full pipeline: decode .rofl → fetch Riot API → extract review JSON"
+  echo ""
+  echo "Options:"
+  echo "  --summoner NAME    Your summoner name (default: from .env)"
+  echo "  --match-id ID      Skip decoder, use this Riot match ID directly"
+  exit 1
+}
+
+ROFL_FILE=""
+SUMMONER="${RIOT_SUMMONER_NAME:-}"
+MATCH_ID=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --summoner) SUMMONER="$2"; shift 2 ;;
+    --match-id) MATCH_ID="$2"; shift 2 ;;
+    --help|-h) usage ;;
+    *) ROFL_FILE="$1"; shift ;;
+  esac
+done
+
+if [ -z "$ROFL_FILE" ] && [ -z "$MATCH_ID" ]; then
+  usage
+fi
+
+BASENAME=$(basename "${ROFL_FILE:-.rofl}" .rofl)
+mkdir -p "$OUTPUT_DIR"
+
+# Step 1: Decode .rofl (positions + wards)
+if [ -n "$ROFL_FILE" ]; then
+  echo "==> Step 1: Decoding $ROFL_FILE..."
+  POSITIONS_FILE="$OUTPUT_DIR/${BASENAME}_positions.json"
+
+  if [ -f "$DECODER_DIR/target/release/ROFL" ]; then
+    "$DECODER_DIR/target/release/ROFL" file -r "$ROFL_FILE" -o "$POSITIONS_FILE"
+  else
+    echo "Error: Decoder not built. Run 'cd decoder && cargo build --release' first."
+    exit 1
+  fi
+
+  echo "    Positions saved to $POSITIONS_FILE"
+else
+  POSITIONS_FILE=""
+  echo "==> Step 1: Skipped (no .rofl file, using --match-id only)"
+fi
+
+# Step 2: Fetch Riot API timeline
+if [ -z "$MATCH_ID" ]; then
+  echo "==> Step 2: Skipped (no --match-id provided)"
+  echo "    To fetch timeline, provide --match-id EUW1_XXXXXXXXXX"
+  TIMELINE_FILE=""
+else
+  echo "==> Step 2: Fetching Riot API timeline for $MATCH_ID..."
+  TIMELINE_FILE="$OUTPUT_DIR/${BASENAME}_timeline.json"
+  ruby "$EXTRACTOR_DIR/bin/fetch_timeline" --match-id "$MATCH_ID" --output "$TIMELINE_FILE"
+  echo "    Timeline saved to $TIMELINE_FILE"
+fi
+
+# Step 3: Extract review JSON
+echo "==> Step 3: Extracting review..."
+
+if [ -z "$SUMMONER" ]; then
+  echo "Error: Summoner name required. Set RIOT_SUMMONER_NAME in .env or use --summoner"
+  exit 1
+fi
+
+REVIEW_FILE="$OUTPUT_DIR/${BASENAME}_review.json"
+
+EXTRACT_ARGS="--summoner \"$SUMMONER\" --output \"$REVIEW_FILE\""
+[ -n "$POSITIONS_FILE" ] && EXTRACT_ARGS="$EXTRACT_ARGS --positions \"$POSITIONS_FILE\""
+[ -n "$TIMELINE_FILE" ] && EXTRACT_ARGS="$EXTRACT_ARGS --timeline \"$TIMELINE_FILE\""
+
+eval ruby "$EXTRACTOR_DIR/bin/extract" $EXTRACT_ARGS
+
+echo ""
+echo "==> Done! Review JSON ready at: $REVIEW_FILE"
+echo ""
+echo "Next: Open Claude Code and run:"
+echo "  Read prompts/review.md then analyse output/${BASENAME}_review.json"

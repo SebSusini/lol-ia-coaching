@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoL Replay Analyzer — Design Spec</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --bg-card: #12121a;
+    --bg-code: #1a1a2e;
+    --border: #2a2a3e;
+    --text: #e0e0e8;
+    --text-muted: #8888a0;
+    --accent: #c89b3c;
+    --accent-glow: rgba(200, 155, 60, 0.15);
+    --blue: #0ac8b9;
+    --blue-glow: rgba(10, 200, 185, 0.15);
+    --red: #e84057;
+    --green: #49b860;
+    --purple: #9b59b6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 0;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a1028 50%, #0a1a1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 40px 50px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 50% 50%, var(--accent-glow) 0%, transparent 50%);
+    animation: pulse 8s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+  }
+
+  .hero h1 {
+    font-size: 2.8em;
+    font-weight: 800;
+    color: var(--accent);
+    position: relative;
+    letter-spacing: -0.02em;
+  }
+
+  .hero .subtitle {
+    font-size: 1.1em;
+    color: var(--text-muted);
+    margin-top: 12px;
+    position: relative;
+  }
+
+  .hero .badges {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+    position: relative;
+  }
+
+  .badge {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 600;
+    border: 1px solid;
+  }
+
+  .badge.python { background: rgba(55, 118, 171, 0.15); border-color: #3776ab; color: #5a9fd4; }
+  .badge.ruby { background: rgba(204, 52, 45, 0.15); border-color: #cc342d; color: #e85750; }
+  .badge.claude { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+  .badge.mid { background: var(--blue-glow); border-color: var(--blue); color: var(--blue); }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 40px 80px;
+  }
+
+  h2 {
+    font-size: 1.6em;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: 50px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  h3 {
+    font-size: 1.15em;
+    font-weight: 600;
+    color: var(--blue);
+    margin-top: 30px;
+    margin-bottom: 12px;
+  }
+
+  p { margin-bottom: 14px; }
+
+  strong { color: #fff; }
+
+  .architecture-flow {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    margin: 24px 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+
+  .flow-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .flow-step {
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9em;
+    white-space: nowrap;
+  }
+
+  .flow-step.input { background: #1a1a2e; border: 1px solid #4a4a6e; color: var(--text-muted); }
+  .flow-step.python { background: rgba(55, 118, 171, 0.2); border: 1px solid #3776ab; color: #5a9fd4; }
+  .flow-step.data { background: rgba(73, 184, 96, 0.15); border: 1px solid #49b860; color: #49b860; }
+  .flow-step.ruby { background: rgba(204, 52, 45, 0.2); border: 1px solid #cc342d; color: #e85750; }
+  .flow-step.claude { background: var(--accent-glow); border: 1px solid var(--accent); color: var(--accent); }
+
+  .flow-arrow {
+    color: var(--text-muted);
+    font-size: 1.2em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 0.9em;
+  }
+
+  th {
+    background: var(--bg-code);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--accent);
+    border-bottom: 2px solid var(--border);
+  }
+
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-code);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--blue);
+  }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 16px 0;
+  }
+
+  .card.warning {
+    border-color: var(--red);
+    background: rgba(232, 64, 87, 0.05);
+  }
+
+  .card.success {
+    border-color: var(--green);
+    background: rgba(73, 184, 96, 0.05);
+  }
+
+  .scope-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .scope-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .scope-card.in-scope { border-color: var(--green); }
+  .scope-card.out-scope { border-color: var(--red); }
+
+  .scope-card h4 {
+    font-size: 0.9em;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .scope-card.in-scope h4 { color: var(--green); }
+  .scope-card.out-scope h4 { color: var(--red); }
+
+  .scope-card ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .scope-card li {
+    padding: 4px 0;
+    font-size: 0.9em;
+    color: var(--text-muted);
+  }
+
+  .scope-card.in-scope li::before { content: "-> "; color: var(--green); font-weight: bold; }
+  .scope-card.out-scope li::before { content: "x  "; color: var(--red); font-weight: bold; }
+
+  .roadmap {
+    position: relative;
+    margin: 24px 0;
+  }
+
+  .roadmap-item {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .roadmap-marker {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.9em;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .roadmap-item:not(:last-child) .roadmap-marker::after {
+    content: '';
+    position: absolute;
+    top: 44px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: calc(100% + 20px);
+    background: var(--border);
+  }
+
+  .roadmap-item:nth-child(1) .roadmap-marker { background: var(--red); color: #fff; }
+  .roadmap-item:nth-child(2) .roadmap-marker { background: #cc342d; color: #fff; }
+  .roadmap-item:nth-child(3) .roadmap-marker { background: var(--accent); color: #000; }
+  .roadmap-item:nth-child(4) .roadmap-marker { background: var(--blue); color: #000; }
+  .roadmap-item:nth-child(5) .roadmap-marker { background: var(--green); color: #000; }
+
+  .roadmap-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    flex: 1;
+  }
+
+  .roadmap-content h4 {
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .roadmap-content .duration {
+    font-size: 0.8em;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .roadmap-content p {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-top: 6px;
+    margin-bottom: 0;
+  }
+
+  .risk-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .risk-icon {
+    font-size: 1.2em;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+  }
+
+  .risk-text strong { color: var(--text); }
+  .risk-text { font-size: 0.9em; color: var(--text-muted); }
+  .risk-mitigation { color: var(--green); font-size: 0.85em; margin-top: 4px; }
+
+  .tree { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; line-height: 1.8; }
+  .tree .dir { color: var(--accent); }
+  .tree .file { color: var(--text-muted); }
+  .tree .comment { color: #555568; }
+
+  .json-preview {
+    position: relative;
+  }
+
+  .json-preview .label {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 0.7em;
+    color: var(--text-muted);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .section-number {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #000;
+    text-align: center;
+    line-height: 28px;
+    font-size: 0.8em;
+    font-weight: 800;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>LoL Replay Analyzer</h1>
+  <div class="subtitle">CLI tool d'analyse de replays League of Legends pour mid laners</div>
+  <div class="badges">
+    <span class="badge python">Python Decoder</span>
+    <span class="badge ruby">Ruby Extractor</span>
+    <span class="badge claude">Claude Reviewer</span>
+    <span class="badge mid">Mid Lane Focus</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <h2><span class="section-number">1</span> Architecture</h2>
+
+  <div class="architecture-flow">
+    <div class="flow-steps">
+      <div class="flow-step input">.rofl</div>
+      <span class="flow-arrow">-></span>
+      <div class="flow-step python">Python Decoder</div>
+      <span class="flow-arrow">-></span>
+      <div class="flow-step data">raw.json (135MB)</div>
+      <span class="flow-arrow">-></span>
+      <div class="flow-step ruby">Ruby Extractor</div>
+      <span class="flow-arrow">-></span>
+      <div class="flow-step data">review.json (50-100KB)</div>
+      <span class="flow-arrow">-></span>
+      <div class="flow-step claude">Claude Review</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Composant</th><th>Langage</th><th>Role</th><th>Source</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Decoder</strong></td>
+        <td><code>Python</code></td>
+        <td>Dechiffre le .rofl -> JSON brut des 20 types de paquets</td>
+        <td>Fork de Mowokuma/ROFL</td>
+      </tr>
+      <tr>
+        <td><strong>Extractor</strong></td>
+        <td><code>Ruby</code></td>
+        <td>Filtre, detecte les patterns, compresse -> JSON compact</td>
+        <td>Code custom</td>
+      </tr>
+      <tr>
+        <td><strong>Reviewer</strong></td>
+        <td><code>Claude</code></td>
+        <td>Analyse gameplay -> review texte</td>
+        <td>Prompt engineering</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Pourquoi ce split ?</h3>
+  <div class="card">
+    <p><strong>Decoder en Python :</strong> Le code de Mowokuma marche deja. Utilise Unicorn Engine pour emuler les fonctions de dechiffrement du binaire LoL. Aucune raison de reecrire.</p>
+    <p><strong>Extractor en Ruby :</strong> C'est la ou 80% du temps de dev passe (logique de detection, reconnaissance de patterns). L'auteur est dev senior Ruby -- iteration la plus rapide dans ce langage.</p>
+    <p style="margin-bottom:0"><strong>Fichier intermediaire de 135MB :</strong> Feature, pas bug. Permet de debugger decoder et extractor independamment. Re-lancer l'extractor sans re-decoder.</p>
+  </div>
+
+  <h2><span class="section-number">2</span> Data Flow</h2>
+
+  <h3>Step 1 -- Decoder (Python)</h3>
+  <p><strong>Input :</strong> fichier <code>.rofl</code></p>
+  <p><strong>Process :</strong></p>
+  <ol style="margin-left: 20px; margin-bottom: 16px; color: var(--text-muted);">
+    <li>Parse header + metadata (JSON non chiffre -- scoreboard post-game)</li>
+    <li>Dechiffre les chunks via Blowfish (cle = match ID)</li>
+    <li>Decompresse (zstd/zlib)</li>
+    <li>Decode les paquets individuels en emulant les fonctions du binaire LoL via Unicorn Engine</li>
+    <li>Necessite un <strong>patch file</strong> par version de LoL</li>
+  </ol>
+
+  <p><strong>Output :</strong> JSON brut avec 20 types de paquets :</p>
+
+  <table>
+    <thead><tr><th>Paquet</th><th>Donnees</th></tr></thead>
+    <tbody>
+      <tr><td><code>CastSpellAns</code></td><td>Chaque cast d'ability (spell, position, cible, cooldown, mana cost)</td></tr>
+      <tr><td><code>BasicAttackPos</code></td><td>Chaque auto-attack (source, cible, positions)</td></tr>
+      <tr><td><code>WaypointGroup</code></td><td>Mouvements des joueurs (coordonnees x,z ~1/seconde)</td></tr>
+      <tr><td><code>UnitApplyDamage</code></td><td>Chaque instance de degat</td></tr>
+      <tr><td><code>HeroDie</code></td><td>Morts de champions</td></tr>
+      <tr><td><code>BuyItem</code></td><td>Achats d'items</td></tr>
+      <tr><td><code>EnterFog / LeaveFog</code></td><td>Entrees/sorties du fog of war</td></tr>
+      <tr><td><code>ReplicationData</code></td><td>Sync d'etat du jeu (HP, mana, stats)</td></tr>
+      <tr><td><code>DoSetCooldown</code></td><td>Mises a jour de cooldowns</td></tr>
+      <tr><td><code>CreateHero</code></td><td>Spawn/init des champions</td></tr>
+      <tr><td><code>CreateNeutral</code></td><td>Creation des monstres neutres</td></tr>
+      <tr><td><code>CreateTurret</code></td><td>Initialisation des tourelles</td></tr>
+      <tr><td><code>NPCDieMapView</code></td><td>Morts de NPCs</td></tr>
+    </tbody>
+  </table>
+
+  <div class="card warning">
+    <strong>Contrainte majeure :</strong> Le patch file doit etre regenere a chaque patch LoL (~toutes les 2 semaines). Il faut dumper les sections du binaire <code>League of Legends.exe</code> (Windows) et trouver les adresses des fonctions de dechiffrement.
+  </div>
+
+  <h3>Step 2 -- Extractor (Ruby)</h3>
+  <p><strong>Input :</strong> JSON brut + summoner name + role</p>
+  <p><strong>Pipeline :</strong></p>
+
+  <div class="architecture-flow" style="text-align: left;">
+    <div style="display: flex; flex-direction: column; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.9em;">
+      <div><span style="color: var(--accent);">1. LOAD</span> <span style="color: var(--text-muted);">-- Lire le JSON brut + identifier ton summoner</span></div>
+      <div><span style="color: var(--accent);">2. FILTER</span> <span style="color: var(--text-muted);">-- Garder seulement ton champion + mid adverse + junglers</span></div>
+      <div><span style="color: var(--accent);">3. DETECT</span> <span style="color: var(--text-muted);">-- Reconnaitre les "moments" gameplay</span></div>
+      <div><span style="color: var(--accent);">4. ENRICH</span> <span style="color: var(--text-muted);">-- Ajouter contexte (vision, wave, gold, objectifs)</span></div>
+      <div><span style="color: var(--accent);">5. AGGREGATE</span> <span style="color: var(--text-muted);">-- Calculer les patterns globaux</span></div>
+      <div><span style="color: var(--accent);">6. EXPORT</span> <span style="color: var(--text-muted);">-- Sortir le JSON compact</span></div>
+    </div>
+  </div>
+
+  <p><strong>Types d'evenements detectes :</strong></p>
+  <table>
+    <thead><tr><th>Type</th><th>Detecte depuis</th><th>Champs cles</th></tr></thead>
+    <tbody>
+      <tr><td><code>TRADE</code></td><td>UnitApplyDamage + CastSpellAns dans ~3s</td><td>hp_before/after, abilities, result</td></tr>
+      <tr><td><code>DEATH</code></td><td>HeroDie sur ton champion</td><td>killed_by, position, gold_unspent, wards</td></tr>
+      <tr><td><code>CS_STATE</code></td><td>Snapshot periodique</td><td>your_cs, enemy_cs, cs_diff</td></tr>
+      <tr><td><code>ROAM</code></td><td>WaypointGroup hors zone mid</td><td>destination, wave_state, result</td></tr>
+      <tr><td><code>TEAMFIGHT</code></td><td>3+ HeroDie dans ~2000u en ~15s</td><td>targets, entry_timing, ult</td></tr>
+      <tr><td><code>RECALL</code></td><td>EnterFog + immobile ~8s</td><td>objective_soon, gold_unspent</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Step 3 -- Reviewer (Claude)</h3>
+  <div class="card success">
+    <p><strong>V1 :</strong> Manuel via Claude Code. Tu lances <code>bin/review game.rofl</code>, tu obtiens <code>review.json</code>, tu le donnes a Claude Code avec le prompt template.</p>
+    <p style="margin-bottom:0"><strong>V2 :</strong> Automatise via API Claude. <code>bin/review</code> sort directement la review texte.</p>
+  </div>
+
+  <h2><span class="section-number">3</span> JSON Compact (Output)</h2>
+
+  <div class="json-preview">
+    <pre><span class="label">review.json (~50-100KB)</span>
+{
+  "meta": {
+    "champion": "Sylas",
+    "enemy_mid": { "champion": "Ahri" },
+    "result": "LOSS",
+    "elo": "Emerald 2",
+    "game_version": "14.22",
+    "duration_seconds": 1847
+  },
+  "final_stats": {
+    "kda": "5/7/3",
+    "cs": 187,
+    "cs_per_min": 6.1,
+    "damage_to_champions": 18200
+  },
+  "timeline": [
+    {
+      "time": "2:45",
+      "type": "TRADE",
+      "your_abilities_used": ["E1", "E2", "W"],
+      "result": "TRADE_LOST"
+    },
+    {
+      "time": "5:30",
+      "type": "DEATH",
+      "killed_by": "LeeSin",
+      "gold_unspent": 1200,
+      "ward_coverage_mid": 0
+    }
+  ],
+  "patterns": {
+    "cs_at_5": 38,
+    "cs_at_10": 72,
+    "trades_won": 2,
+    "trades_lost": 4
+  }
+}</pre>
+  </div>
+
+  <h2><span class="section-number">4</span> Structure du Projet</h2>
+
+  <pre class="tree"><span class="dir">lol-replay-analyzer/</span>
+<span class="dir">  decoder/</span>                <span class="comment"># Fork Python Mowokuma</span>
+<span class="dir">    patches/</span>              <span class="comment"># Patch files par version LoL</span>
+<span class="dir">  extractor/</span>              <span class="comment"># Ruby</span>
+<span class="dir">    lib/</span>
+<span class="file">      extractor.rb</span>
+<span class="file">      game_context.rb</span>
+<span class="dir">      filters/</span>
+<span class="file">        mid_lane_filter.rb</span>
+<span class="dir">      detectors/</span>
+<span class="file">        trade_detector.rb</span>
+<span class="file">        death_detector.rb</span>
+<span class="file">        roam_detector.rb</span>
+<span class="file">        teamfight_detector.rb</span>
+<span class="file">        recall_detector.rb</span>
+<span class="dir">      enrichers/</span>
+<span class="file">        context_enricher.rb</span>
+<span class="dir">      formatters/</span>
+<span class="file">        review_formatter.rb</span>
+<span class="dir">    bin/</span>
+<span class="file">      extract</span>
+<span class="dir">    spec/</span>
+<span class="dir">  prompts/</span>
+<span class="file">    review.md</span>
+<span class="dir">  bin/</span>
+<span class="file">    review</span>                <span class="comment"># Orchestrateur principal</span>
+<span class="dir">  replays/</span>               <span class="comment"># .rofl (gitignored)</span>
+<span class="dir">  output/</span>                <span class="comment"># JSON generes (gitignored)</span></pre>
+
+  <h2><span class="section-number">5</span> Scope V1</h2>
+
+  <div class="scope-grid">
+    <div class="scope-card in-scope">
+      <h4>V1 -- In scope</h4>
+      <ul>
+        <li>Mid lane only</li>
+        <li>Tous les champions mid (teste sur Sylas)</li>
+        <li>3 detectors : DEATH, TRADE, CS_STATE</li>
+        <li>Review manuelle via Claude Code</li>
+        <li>Support patch courant uniquement</li>
+        <li>Usage personnel</li>
+      </ul>
+    </div>
+    <div class="scope-card out-scope">
+      <h4>V1 -- Hors scope</h4>
+      <ul>
+        <li>Autres roles (top, jungle, ADC, support)</li>
+        <li>Interface web</li>
+        <li>API Claude automatisee</li>
+        <li>Support multi-patch</li>
+        <li>Multi-utilisateurs</li>
+        <li>Release open source</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="section-number">6</span> Roadmap</h2>
+
+  <div class="roadmap">
+    <div class="roadmap-item">
+      <div class="roadmap-marker">1</div>
+      <div class="roadmap-content">
+        <h4>PoC Decoder</h4>
+        <div class="duration">1-2 semaines -- CRITICAL GATE</div>
+        <p>Forker Mowokuma, generer le patch file, decoder un .rofl. Si ca bloque ici, on le sait vite.</p>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="roadmap-marker">2</div>
+      <div class="roadmap-content">
+        <h4>Extractor + 3 Detectors</h4>
+        <div class="duration">2-3 jours</div>
+        <p>DEATH, TRADE, CS_STATE en Ruby. Claude Code ecrit 90% du code.</p>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="roadmap-marker">3</div>
+      <div class="roadmap-content">
+        <h4>Prompt Iteration</h4>
+        <div class="duration">1 soiree</div>
+        <p>Tester sur des games connues, verifier que Claude identifie les bonnes erreurs.</p>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="roadmap-marker">4</div>
+      <div class="roadmap-content">
+        <h4>Detectors avances</h4>
+        <div class="duration">2-3 jours</div>
+        <p>ROAM, TEAMFIGHT, RECALL, OBJECTIVE. Meme pattern, un detector = ~30min avec Claude.</p>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="roadmap-marker">5</div>
+      <div class="roadmap-content">
+        <h4>Polish & Automation</h4>
+        <div class="duration">1-2 soirees</div>
+        <p>Script bin/review, gestion d'erreurs, integration API Claude.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2><span class="section-number">7</span> Risques</h2>
+
+  <div class="card">
+    <div class="risk-row">
+      <div class="risk-icon" style="color: var(--red);">!</div>
+      <div class="risk-text">
+        <strong>Mowokuma arrete la maintenance</strong> -- Plus de patch files pour les nouvelles versions
+        <div class="risk-mitigation">Mitigation : Apprendre a generer les patch files soi-meme des le debut</div>
+      </div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-icon" style="color: var(--red);">!</div>
+      <div class="risk-text">
+        <strong>Vanguard bloque le dump du binaire</strong> -- Impossible de generer les patch files
+        <div class="risk-mitigation">Mitigation : La communaute trouvera des contournements ; fallback sur Riot API</div>
+      </div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-icon" style="color: var(--accent);">~</div>
+      <div class="risk-text">
+        <strong>Format .rofl change fondamentalement</strong> -- Le decoder casse
+        <div class="risk-mitigation">Mitigation : Peu probable, le format est stable depuis des annees</div>
+      </div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-icon" style="color: var(--accent);">~</div>
+      <div class="risk-text">
+        <strong>JSON de 135MB trop bruyant</strong> -- Mauvaises detections
+        <div class="risk-mitigation">Mitigation : L'extractor Ruby filtre agressivement ; iterer sur les seuils</div>
+      </div>
+    </div>
+    <div class="risk-row" style="border-bottom: none;">
+      <div class="risk-icon" style="color: var(--text-muted);">?</div>
+      <div class="risk-text">
+        <strong>Hallucinations de Claude</strong> -- Mauvais conseils gameplay
+        <div class="risk-mitigation">Mitigation : JSON structure reduit les hallucinations ; prompt engineering</div>
+      </div>
+    </div>
+  </div>
+
+  <h2><span class="section-number">8</span> Cross-Platform</h2>
+
+  <table>
+    <thead><tr><th>Plateforme</th><th>Usage</th><th>Details</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Windows</strong></td>
+        <td>Jouer</td>
+        <td>Source des fichiers .rofl + League of Legends.exe pour les patch files</td>
+      </tr>
+      <tr>
+        <td><strong>macOS</strong></td>
+        <td>Developper</td>
+        <td>Decoder via Unicorn Engine (emule x86_64). Extractor Ruby natif.</td>
+      </tr>
+      <tr>
+        <td><strong>Transfert</strong></td>
+        <td>.rofl</td>
+        <td>Cloud sync, USB, ou dossier partage entre les deux machines</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+</body>
+</html>

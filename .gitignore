@@ -1,0 +1,23 @@
+# Env
+.env
+
+# Replay files (too large for git)
+replays/*.rofl
+
+# Generated output
+output/*.json
+
+# Decoder binary & build artifacts
+decoder/target/
+decoder/patch/*.patch
+
+# Ruby
+extractor/.bundle/
+extractor/vendor/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
