@@ -1,0 +1,60 @@
+# Workspace — lol-replay-analyzer
+
+## Workspace identity
+Always prefix your first response in a conversation with the workspace badge:
+🟢 **[w1] lol-replay-analyzer**
+
+This helps the user know which workspace this Claude session is attached to.
+
+## Workspace info
+- **Slot**: 1
+- **Mode**: attached
+- **Branch**: `main`
+- **Created**: 2026-04-12
+- **Repos**:
+  - lol-replay-analyzer -> /Users/sommesi/projects/lol-replay-analyzer (port null)
+
+## Goal of this workspace
+Build a CLI tool that analyzes League of Legends .rofl replays to generate gameplay reviews for all roles. Pipeline: Rust decoder (positions/wards) → Riot API (timeline events) → Ruby extractor (pattern detection) → Claude-powered review. Currently working on V2.
+
+## Spec
+none
+
+## Notes / decisions / TODOs
+
+
+### Session marker — 2026-04-12 19:55
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 19:55
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 19:56
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 19:56
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 20:02
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 20:08
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 20:14
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 20:15
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 20:16
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 20:27
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 20:45
+(auto-captured — session ended)
+
+### Session marker — 2026-04-12 20:46
+(auto-captured — session ended)
