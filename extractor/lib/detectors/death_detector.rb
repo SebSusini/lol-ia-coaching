@@ -18,7 +18,8 @@ class DeathDetector
         @context.participants.find { |p| p["participantId"] == aid }&.dig("championName")
       end.compact
 
-      position = @context.player_position_at(@context.my_champion, timestamp)
+      # Use kill event position from Riot API (more reliable), fallback to Mowokuma
+      position = event["position"] || @context.player_position_at(@context.my_champion, timestamp)
 
       # Find gold state from nearest timeline frame
       frame = nearest_frame(timestamp)

@@ -1,35 +1,83 @@
 require "json"
 
 require_relative "game_context"
+require_relative "item_resolver"
 require_relative "filters/mid_lane_filter"
 require_relative "detectors/death_detector"
+require_relative "detectors/death_position_classifier"
 require_relative "detectors/cs_state_detector"
 require_relative "detectors/roam_detector"
+require_relative "detectors/teamfight_detector"
+require_relative "detectors/objective_detector"
 require_relative "formatters/review_formatter"
 
 class Extractor
-  def initialize(timeline_path:, summoner_name:, positions_path: nil)
+  def initialize(timeline_path:, summoner_name:, positions_path: nil, live_path: nil)
     @positions_data = positions_path ? JSON.parse(File.read(positions_path)) : { "players_state" => [], "wards" => [] }
     @timeline_data = JSON.parse(File.read(timeline_path))
+    @live_data = live_path ? JSON.parse(File.read(live_path)) : nil
     @summoner_name = summoner_name
+    @item_resolver = ItemResolver.new
   end
 
   def extract
     context = GameContext.new(@positions_data, @timeline_data, @summoner_name)
-
-    # Filter events relevant to mid lane
     filtered = MidLaneFilter.new(context).filter
 
-    # Run detectors
+    # Run all detectors
     timeline_events = []
     timeline_events += DeathDetector.new(context, filtered).detect
     timeline_events += CsStateDetector.new(context, filtered).detect
     timeline_events += RoamDetector.new(context, filtered).detect
+    timeline_events += TeamfightDetector.new(context, filtered).detect
+    timeline_events += ObjectiveDetector.new(context, filtered).detect
+
+    # Enrich deaths with position classification
+    classifier = DeathPositionClassifier.new(context.my_team || "Blue")
+    timeline_events.each do |event|
+      if event[:type] == "DEATH" && event[:position]
+        classification = classifier.classify(event[:position])
+        event[:zone] = classification[:zone]
+        event[:zone_detail] = classification[:detail]
+        event[:evitable] = classification[:evitable]
+      end
+    end
+
+    # Enrich deaths with item comparison from live data
+    if @live_data
+      enrich_with_live_data(context, timeline_events)
+    end
 
     # Sort by time
     timeline_events.sort_by! { |e| e[:time_seconds] }
 
     # Format output
-    ReviewFormatter.new(context, timeline_events).format
+    ReviewFormatter.new(context, timeline_events, @item_resolver).format
+  end
+
+  private
+
+  def enrich_with_live_data(context, events)
+    snapshots = @live_data["snapshots"] || []
+    return if snapshots.empty?
+
+    events.select { |e| e[:type] == "DEATH" }.each do |death|
+      # Find closest snapshot to death time
+      closest = snapshots.min_by { |s| (s["gameTime"] - death[:time_seconds]).abs }
+      next unless closest
+
+      my_player = closest["players"]&.find { |p| p["champion"] == context.my_champion }
+      enemy_laner = closest["players"]&.find { |p| p["champion"] == context.enemy_mid_champion }
+
+      if my_player
+        death[:your_items] = (my_player["items"] || []).map { |i| i["name"] }.reject(&:nil?)
+        death[:your_level_at_death] = my_player["level"]
+      end
+
+      if enemy_laner
+        death[:enemy_items] = (enemy_laner["items"] || []).map { |i| i["name"] }.reject(&:nil?)
+        death[:enemy_level_at_death] = enemy_laner["level"]
+      end
+    end
   end
 end

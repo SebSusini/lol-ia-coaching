@@ -22,3 +22,4 @@ extractor/vendor/
 .vscode/
 .idea/
 decoder/
+.item_cache.json

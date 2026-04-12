@@ -1,9 +1,10 @@
 require "json"
 
 class ReviewFormatter
-  def initialize(context, timeline_events)
+  def initialize(context, timeline_events, item_resolver = nil)
     @context = context
     @timeline_events = timeline_events
+    @item_resolver = item_resolver
   end
 
   def format
@@ -11,7 +12,8 @@ class ReviewFormatter
       meta: build_meta,
       final_stats: build_final_stats,
       timeline: @timeline_events,
-      patterns: build_patterns
+      patterns: build_patterns,
+      gold_curve: build_gold_curve
     }
   end
 
@@ -22,47 +24,121 @@ class ReviewFormatter
   private
 
   def build_meta
+    my_participant = find_my_participant
+    enemy_laner = find_enemy_laner
+    my_team_id = my_participant&.dig("teamId")
+
     {
       champion: @context.my_champion,
-      enemy_mid: { champion: @context.enemy_mid_champion },
+      role: my_participant&.dig("teamPosition"),
+      enemy_laner: {
+        champion: enemy_laner&.dig("championName"),
+        kda: enemy_laner ? "#{enemy_laner['kills']}/#{enemy_laner['deaths']}/#{enemy_laner['assists']}" : nil
+      },
       result: @context.result,
-      elo: "Emerald 2",
       game_version: @context.game_version,
       duration_seconds: @context.game_duration_seconds,
-      team: @context.my_team
+      team: @context.my_team,
+      teammates: @context.participants
+        .select { |p| p["teamId"] == my_team_id && p["participantId"] != @context.my_participant_id }
+        .map { |p| { champion: p["championName"], position: p["teamPosition"], kda: "#{p['kills']}/#{p['deaths']}/#{p['assists']}" } },
+      enemies: @context.participants
+        .select { |p| p["teamId"] != my_team_id }
+        .map { |p| { champion: p["championName"], position: p["teamPosition"], kda: "#{p['kills']}/#{p['deaths']}/#{p['assists']}" } }
     }
   end
 
   def build_final_stats
-    my_participant = @context.participants.find { |p| p["participantId"] == @context.my_participant_id }
-    return {} unless my_participant
+    p = find_my_participant
+    return {} unless p
+
+    total_cs = p["totalMinionsKilled"] + p["neutralMinionsKilled"]
+    team_kills = @context.participants.select { |t| t["teamId"] == p["teamId"] }.sum { |t| t["kills"] }
 
     {
-      kda: "#{my_participant['kills']}/#{my_participant['deaths']}/#{my_participant['assists']}",
-      cs: my_participant["totalMinionsKilled"] + my_participant["neutralMinionsKilled"],
-      cs_per_min: ((my_participant["totalMinionsKilled"] + my_participant["neutralMinionsKilled"]).to_f / (@context.game_duration_seconds / 60.0)).round(1),
-      gold: my_participant["goldEarned"],
-      damage_to_champions: my_participant["totalDamageDealtToChampions"],
-      damage_taken: my_participant["totalDamageTaken"],
-      vision_score: my_participant["visionScore"],
-      items_final: (0..6).map { |i| my_participant["item#{i}"] }.reject { |i| i == 0 }
+      kda: "#{p['kills']}/#{p['deaths']}/#{p['assists']}",
+      cs: total_cs,
+      cs_per_min: (total_cs.to_f / (@context.game_duration_seconds / 60.0)).round(1),
+      gold: p["goldEarned"],
+      damage_to_champions: p["totalDamageDealtToChampions"],
+      damage_taken: p["totalDamageTaken"],
+      vision_score: p["visionScore"],
+      kill_participation: team_kills > 0 ? ((p["kills"] + p["assists"]).to_f / team_kills * 100).round(0) : 0,
+      items_final: resolve_items((0..6).map { |i| p["item#{i}"] }.reject { |i| i == 0 })
     }
   end
 
   def build_patterns
     deaths = @timeline_events.select { |e| e[:type] == "DEATH" }
     roams = @timeline_events.select { |e| e[:type] == "ROAM" }
-    cs_states = @timeline_events.select { |e| e[:type] == "CS_STATE" }
+    teamfights = @timeline_events.select { |e| e[:type] == "TEAMFIGHT" }
+    objectives = @timeline_events.select { |e| e[:type] == "OBJECTIVE" }
+
+    enemy_laner = find_enemy_laner
+    enemy_jungler = @context.participants.find { |p| p["teamPosition"] == "JUNGLE" && p["teamId"] != find_my_participant&.dig("teamId") }
 
     {
       death_count: deaths.size,
       death_timings: deaths.map { |d| d[:time_formatted] },
       gold_unspent_at_deaths: deaths.map { |d| d[:gold_unspent] }.compact,
+      deaths_by_zone: deaths.group_by { |d| d[:zone] || "UNKNOWN" }.transform_values(&:size),
+      deaths_to_enemy_laner: deaths.count { |d| d[:killed_by] == enemy_laner&.dig("championName") },
+      deaths_with_enemy_jungler: deaths.count { |d| (d[:assisted_by] || []).include?(enemy_jungler&.dig("championName")) || d[:killed_by] == enemy_jungler&.dig("championName") },
+      solo_deaths: deaths.count { |d| (d[:assisted_by] || []).empty? },
+      teamfights_participated: teamfights.count { |t| t[:you_participated] },
+      teamfights_total: teamfights.size,
+      teamfights_won: teamfights.count { |t| t[:result] == "WON" },
+      objectives_your_team: objectives.count { |o| o[:taken_by] == "YOUR_TEAM" },
+      objectives_enemy: objectives.count { |o| o[:taken_by] == "ENEMY_TEAM" },
       roams_attempted: roams.size,
-      roams_successful: roams.count { |r| r[:result] == "KILL" },
-      cs_at_5: cs_states.find { |c| c[:time_formatted] == "5:00" }&.dig(:your_cs),
-      cs_at_10: cs_states.find { |c| c[:time_formatted] == "10:00" }&.dig(:your_cs),
-      cs_at_15: cs_states.find { |c| c[:time_formatted] == "15:00" }&.dig(:your_cs)
+      roams_successful: roams.count { |r| r[:result] == "KILL" }
     }
+  end
+
+  def build_gold_curve
+    @context.timeline_frames.filter_map do |frame|
+      ts_min = frame["timestamp"] / 60000.0
+      next unless ts_min > 0 && (ts_min % 5).abs < 0.1 # Every 5 min
+
+      my_frame = frame.dig("participantFrames", @context.my_participant_id.to_s)
+      enemy_id = find_enemy_laner&.dig("participantId")
+      enemy_frame = frame.dig("participantFrames", enemy_id.to_s) if enemy_id
+
+      next unless my_frame
+
+      my_cs = (my_frame["minionsKilled"] || 0) + (my_frame["jungleMinionsKilled"] || 0)
+      enemy_cs = enemy_frame ? (enemy_frame["minionsKilled"] || 0) + (enemy_frame["jungleMinionsKilled"] || 0) : nil
+
+      {
+        time_min: ts_min.round(0).to_i,
+        your_gold: my_frame["totalGold"],
+        enemy_gold: enemy_frame&.dig("totalGold"),
+        gold_diff: enemy_frame ? my_frame["totalGold"] - enemy_frame["totalGold"] : nil,
+        your_cs: my_cs,
+        enemy_cs: enemy_cs,
+        your_level: my_frame["level"],
+        enemy_level: enemy_frame&.dig("level")
+      }
+    end
+  end
+
+  def find_my_participant
+    @context.participants.find { |p| p["participantId"] == @context.my_participant_id }
+  end
+
+  def find_enemy_laner
+    my = find_my_participant
+    return nil unless my
+    @context.participants.find do |p|
+      p["teamPosition"] == my["teamPosition"] && p["teamId"] != my["teamId"]
+    end
+  end
+
+  def resolve_items(item_ids)
+    if @item_resolver
+      item_ids.map { |id| @item_resolver.resolve(id) }.compact
+    else
+      item_ids
+    end
   end
 end
