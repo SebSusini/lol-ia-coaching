@@ -68,8 +68,8 @@ Replay LoL (client)
 ### Installation
 
 ```bash
-git clone https://github.com/TON_USER/lol-replay-analyzer.git
-cd lol-replay-analyzer
+git clone https://github.com/TON_USER/lol-ia-coaching.git
+cd lol-ia-coaching
 
 # Installer les dependances Ruby
 cd extractor && bundle install && cd ..
@@ -153,7 +153,7 @@ Mort #4 (12:03) - Picked en jungle ennemie 1v4
 ## Structure du projet
 
 ```
-lol-replay-analyzer/
+lol-ia-coaching/
 ├── extractor/
 │   ├── bin/
 │   │   ├── extract          # CLI extraction
