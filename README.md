@@ -1,88 +1,60 @@
-# LoL Replay Analyzer
+# LoL IA Coaching
 
-Outil d'analyse de replays League of Legends qui genere des reviews de gameplay detaillees pour les mid laners.
+Outil d'analyse de replays League of Legends avec coaching IA.
+Analyse tes games, detecte tes erreurs recurrentes, progresse.
 
-Tu joues ta game, tu lances le replay en x8, et tu obtiens une review complete avec :
-- Analyse de chaque mort (dive sous tour ? gank ? overextend ?)
-- Progression des items comparee a ton adversaire
-- Courbe de gold/CS/XP minute par minute
-- Detection des rotations, objectifs, teamfights
-- Conseils adaptes a ton elo
-
-## Comment ca marche
-
-```
-1. Tu joues ta game normalement
-2. Tu lances le replay dans le client LoL (en x8)
-3. Le recorder capture les donnees en temps reel via localhost:2999
-4. Le script fetch la timeline Riot API pour les events detailles
-5. L'extractor Ruby merge tout et genere un JSON compact
-6. Tu donnes le JSON a Claude Code -> review de coaching
-```
-
-### Architecture
-
-```
-Replay LoL (client)
-    |
-    v
-[Live Client API - localhost:2999]  --> record_replay --> live_data.json
-    |                                                        |
-    |                                                        v
-[Riot API Match Timeline]  --> fetch_timeline --> timeline.json
-    |                                                        |
-    |                                                        v
-[.rofl metadata]                              [Ruby Extractor] --> review.json
-                                                                     |
-                                                                     v
-                                                              [Claude Code] --> Review
-```
-
-### Donnees capturees
-
-| Source | Donnees | Frequence |
-|---|---|---|
-| **Live Client API** | Items, levels, KDA, isDead, summoner spells pour les 10 joueurs | Toutes les 2s |
-| **Live Client API** | Events (kills, turrets, dragons, barons) avec noms | Temps reel |
-| **Riot API Timeline** | Kill events avec positions x,y, achats d'items, CS/gold/XP par minute | Post-game |
-| **.rofl metadata** | Scoreboard complet (damage, vision, CS) | Post-game |
-
-### Ce que la review detecte
-
-- **Position de chaque mort** : dive sous tour, centre de lane, jungle, riviere
-- **Camping du jungler** : combien de fois le jungler adverse est implique dans tes morts
-- **Gap d'items** : comparaison item par item a chaque mort
-- **Avantage de level/gold** : courbe minute par minute vs ton adversaire
-- **Kills et assists** : quand tu trouves des angles pour comeback
-- **Objectifs** : dragons, barons, tourelles
+**3 modes d'utilisation :**
+- **Mode Rapide** : Riot API seulement, pas besoin de replay (positions par minute)
+- **Mode Live** : lance le replay en x8 + capture live data (items, KDA, events)
+- **Mode Frida** : lance le replay + capture positions en memoire (positions en temps reel)
+- **Mode Multi-game** : analyse croisee de plusieurs games pour trouver tes patterns d'erreurs
 
 ## Setup
 
-### Prerequis
+### Prerequis (Mac et Windows)
 
-- macOS ou Linux
-- Ruby 3.x
-- Un compte Riot Games avec une [API key](https://developer.riotgames.com/)
-- Le client League of Legends (pour jouer les replays)
+| Outil | Mac | Windows |
+|---|---|---|
+| **Ruby 3.x** | `brew install ruby` | [rubyinstaller.org](https://rubyinstaller.org/) |
+| **Python 3.10+** | Pre-installe | [python.org](https://www.python.org/downloads/) |
+| **Git** | Pre-installe | [git-scm.com](https://git-scm.com/) |
+| **Client LoL** | Installe normalement | Installe normalement |
+| **Cle API Riot** | [developer.riotgames.com](https://developer.riotgames.com/) | Idem |
+
+### Prerequis supplementaires par mode
+
+| Mode | Prerequis |
+|---|---|
+| **Rapide** | Aucun (juste Ruby + cle API Riot) |
+| **Live** | Client LoL pour lancer les replays |
+| **Frida** | `pip install frida frida-tools` |
+| **Multi-game** | Idem que le mode choisi |
 
 ### Installation
 
 ```bash
-git clone https://github.com/TON_USER/lol-ia-coaching.git
+# Cloner le repo
+git clone https://github.com/SebSusini/lol-ia-coaching.git
 cd lol-ia-coaching
 
 # Installer les dependances Ruby
 cd extractor && bundle install && cd ..
 
-# Configurer ton compte
+# Installer les dependances Python (pour les modes avances)
+pip install frida frida-tools zstandard
+
+# Configurer
 cp .env.example .env
-# Edite .env avec ta cle API Riot et ton pseudo
+# Editer .env avec ta cle API Riot et ton pseudo
 ```
 
 ### Configuration (.env)
 
 ```bash
+# Cle API Riot (expire toutes les 24h, renouveler sur developer.riotgames.com)
 RIOT_API_KEY=RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Ton pseudo LoL
 RIOT_SUMMONER_NAME=TonPseudo
 RIOT_TAG_LINE=EUW
 RIOT_REGION=europe
@@ -91,131 +63,147 @@ RIOT_PLATFORM=euw1
 
 ## Utilisation
 
-### 1. Trouver ta game
+### Mode 1 — Rapide (Riot API seul, pas de replay)
+
+Le plus simple. Analyse une game a partir de son match ID.
 
 ```bash
-# Voir tes 10 dernieres games
-ruby -r dotenv/load -e '
-require_relative "extractor/lib/riot_api_client"
-client = RiotApiClient.new
-account = client.account_by_riot_id(ENV["RIOT_SUMMONER_NAME"], ENV["RIOT_TAG_LINE"])
-matches = client.match_history(account["puuid"], count: 10)
-matches.each do |id|
-  info = client.match_info(id)
-  you = info["info"]["participants"].find { |p| p["puuid"] == account["puuid"] }
-  puts "#{id} | #{you["championName"]} #{you["teamPosition"]} | #{you["kills"]}/#{you["deaths"]}/#{you["assists"]} | #{you["win"] ? "WIN" : "LOSS"}"
-  sleep 1.2
-end'
+# Voir tes dernieres games
+ruby extractor/bin/fetch_timeline --match-id EUW1_XXXXXXXXXX --output output/timeline.json
+
+# Generer la review
+ruby extractor/bin/extract --timeline output/timeline.json --summoner "TonPseudo" --output output/review.json
+
+# Lire la review dans Claude Code
+# "Lis prompts/review.md puis analyse output/review.json"
 ```
 
-### 2. Enregistrer le replay (live data)
+**Ce que tu obtiens :** positions par minute, kills avec localisation (dive/gank/overextend), CS/gold/XP courbes, items timing, teamfights, objectifs, jungler tracking, vision, damage efficiency.
+
+### Mode 2 — Live Recording (replay x8)
+
+Lance le replay dans le client LoL en x8 et capture les donnees en temps reel.
 
 ```bash
-# Lance le replay dans le client LoL, puis :
-ruby extractor/bin/record_replay output/ma_game_live.json
+# 1. Lance le replay dans le client LoL
+# 2. Mets en x8
+# 3. Lance le recorder :
+ruby extractor/bin/record_replay output/live.json
 
-# Mets le replay en x8 pour aller vite (~3-4 min)
-# Le script s'arrete automatiquement a la fin de la game
+# 4. Quand le replay est fini, genere la review :
+ruby extractor/bin/extract --timeline output/timeline.json --live output/live.json --summoner "TonPseudo"
 ```
 
-### 3. Fetch la timeline Riot API
+**Ce que tu obtiens en plus :** items a chaque mort (comparaison avec l'adversaire), events en temps reel (kills avec noms).
+
+### Mode 3 — Frida (positions en memoire)
+
+Capture les positions de tous les champions directement depuis la memoire du jeu.
 
 ```bash
-ruby extractor/bin/fetch_timeline --match-id EUW1_XXXXXXXXXX --output output/ma_game_timeline.json
+# 1. Lance le replay dans le client LoL
+# 2. Lance le scanner Frida :
+python3 tools/frida_scan.py output/positions.json
+
+# 3. Laisse tourner pendant le replay
+# 4. Les positions de ~30-60 entites sont capturees toutes les 2 secondes
 ```
 
-### 4. Generer la review
+**Ce que tu obtiens en plus :** positions en temps reel de tous les champions et entites.
+
+> Note : Frida lit la memoire en lecture seule. Aucun risque de ban — c'est un replay offline, pas une game en ligne.
+
+### Mode 4 — Multi-game Review
+
+Analyse croisee de plusieurs games pour trouver tes erreurs recurrentes.
 
 ```bash
-# Ouvre Claude Code dans le projet
-claude
-
-# Puis demande :
-# "Lis prompts/review.md puis analyse output/ma_game_review.json
-#  et output/ma_game_live.json"
+# Analyse automatique de tes 5 dernieres ranked
+ruby extractor/bin/batch_analyze --count 5 --summoner "TonPseudo"
 ```
 
-## Exemple de review
+**Ce que tu obtiens :** patterns d'erreurs recurrentes (zones de mort, vision, timing, damage).
 
-Voici un extrait d'une review generee pour une game Sylas vs Mel (Emerald 2) :
+## 12 Detectors
 
-```
-Mort #3 (10:47) - Mel te DIVE sous ta tour
-- Toi : Hextech Alternator + composants (pas d'item complet)
-- Mel : Luden's Echo complet + Boots
-- Verdict : INEVITABLE - le gap d'items est trop gros, elle sait qu'elle a le burst
-
-Mort #4 (12:03) - Picked en jungle ennemie 1v4
-- Position : jungle top cote ennemi (x:3090, y:12817)
-- Verdict : EVITABLE - ne traverse pas la jungle ennemie seul quand tu es 1/3
-```
+| Detector | Ce qu'il detecte |
+|---|---|
+| **Death** | Chaque mort avec zone (dive/gank/river/overextend), gold non depense |
+| **Death Position** | Classification de la position de mort (sous ta tour, centre lane, etc.) |
+| **CS State** | CS/gold/level diff vs adversaire toutes les 5 min |
+| **Roam** | Roams detectes par position, destination, resultat |
+| **Teamfight** | Cluster de kills, participation, resultat |
+| **Objective** | Dragons, Barons, Heralds — present ou absent |
+| **Position Tracker** | Position par minute de tous les joueurs (Riot API) |
+| **Jungler Tracker** | Position du jungler ennemi + niveau de danger |
+| **Ward Tracker** | Vision score, wards posees/tuees, avantage vision |
+| **Item Spike** | Timing des items majeurs vs adversaire |
+| **Lane State** | Gold/CS/level diff au moment de chaque mort |
+| **Comeback** | Detection des momentum shifts (gold diff change de signe) |
+| **Damage Efficiency** | Damage/gold ratio vs adversaire et equipe |
 
 ## Structure du projet
 
 ```
 lol-ia-coaching/
-├── extractor/
+├── extractor/              # Pipeline Ruby (12 detectors)
 │   ├── bin/
-│   │   ├── extract          # CLI extraction
-│   │   ├── fetch_timeline   # Fetch Riot API
-│   │   └── record_replay    # Enregistre les donnees live du replay
+│   │   ├── extract         # Genere la review JSON
+│   │   ├── fetch_timeline  # Fetch Riot API
+│   │   ├── record_replay   # Mode Live (localhost:2999)
+│   │   ├── record_positions # Mode Frida (wrapper Ruby)
+│   │   └── batch_analyze   # Mode Multi-game
 │   └── lib/
 │       ├── riot_api_client.rb
 │       ├── extractor.rb
 │       ├── game_context.rb
-│       ├── filters/         # Filtrage mid lane
-│       ├── detectors/       # Detection de patterns (death, cs, roam)
-│       ├── enrichers/       # Enrichissement contextuel
-│       └── formatters/      # Formatage du JSON de review
+│       ├── item_resolver.rb
+│       ├── detectors/      # 12 detectors
+│       └── formatters/
+├── tools/
+│   └── frida_scan.py       # Scanner memoire Frida
+├── decoder/                # Parsers ROFL2 + crypto research
 ├── prompts/
-│   └── review.md            # Prompt template pour Claude
-├── bin/
-│   └── review               # Orchestrateur principal
-├── replays/                  # Fichiers .rofl (gitignored)
-├── output/                   # JSON generes (gitignored)
-├── .env.example
-└── CLAUDE.md                 # Contexte IA
+│   └── review.md           # Prompt template pour Claude
+├── .env                    # Config (gitignored)
+├── .env.example            # Template de config
+└── CLAUDE.md               # Contexte IA
+```
+
+## Exemple de review multi-game
+
+```
+=== ANALYSE CROSS-GAME — 5 DERNIERES RANKED ===
+
+MORTS : 21 en 5 games (4.2/game)
+  - 71% en RIVIERE (pas de vision)
+  - 62% avec jungler ennemi implique
+  - 67% avant 15 min (early game)
+
+VISION : 5/5 games rated POOR
+
+TOP 3 ERREURS RECURRENTES :
+1. Morts en riviere sans vision — ward avant de bouger
+2. Vision catastrophique — control ward a chaque back
+3. Pas de damage quand behind — consequence des morts early
 ```
 
 ## Roadmap
 
-- [x] Riot API integration (timeline, match info)
+- [x] Riot API integration (timeline, match info, positions par minute)
 - [x] Live replay recording via localhost:2999
-- [x] Death detection avec position (dive/gank/overextend)
-- [x] CS/Gold/XP tracking par minute
-- [x] Item progression tracking
-- [x] Event timeline (kills, turrets, objectives)
-- [x] Prompt template pour Claude Code
-- [ ] Detection de roam automatique (avec positions live)
-- [ ] Detection de teamfight
-- [ ] Recall timing analysis
-- [ ] Support multi-champion (pas que Sylas)
-- [ ] API Claude automatisee (plus besoin de copier/coller)
-- [ ] Parsing .rofl profond (positions, abilities, degats)
-- [ ] Interface web
-
-## Tech Stack
-
-- **Ruby** — Extraction, detection de patterns, formatting
-- **Riot API v5** — Match timeline, events, participant data
-- **LoL Live Client Data API** — Donnees en temps reel pendant le replay
-- **Claude** — Generation de la review de coaching
-
-## Limitations actuelles
-
-- Il faut jouer le replay dans le client LoL (en x8 ca prend ~3-4 min)
-- Pas de positions exactes des joueurs sur la map (prevu en V2)
-- Pas de detection de trades de lane (necessite les packets de degats)
-- La cle API Riot dev expire toutes les 24h
+- [x] 12 detectors (death zones, CS, roam, teamfight, objectives, jungler, vision, items, comeback, damage)
+- [x] Frida memory scanning pour positions en temps reel
+- [x] Multi-game analysis (erreurs recurrentes)
+- [x] Batch replay launcher via LCU API
+- [x] Prompt template pour Claude (tous roles)
+- [ ] Interface web pour les reviews
+- [ ] API Claude automatisee (plus de copier/coller)
+- [ ] Decodage direct du .rofl (sans replay)
 
 ## Contribuer
 
-Le projet est en early stage. Si tu veux contribuer :
-1. Fork le repo
-2. Cree une branche (`git checkout -b feature/mon-truc`)
-3. Commit (`git commit -m "Add mon truc"`)
-4. Push (`git push origin feature/mon-truc`)
-5. Ouvre une PR
+Le projet est open source. Fork, PR, issues bienvenues.
 
 ## Licence
 
