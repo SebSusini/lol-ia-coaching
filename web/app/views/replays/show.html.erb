@@ -1,0 +1,490 @@
+<% content_for(:title, "#{@replay.champion || @replay.match_id} - LoL IA Coaching") %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+  <!-- Back link -->
+  <a href="<%= replays_path %>" class="inline-flex items-center gap-1 text-sm text-[#a09b8c] hover:text-[#f0e6d2] transition-colors mb-6">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+    </svg>
+    Retour aux replays
+  </a>
+
+  <% if @replay.completed? && @replay.review_json.present? %>
+    <% review = @replay.review_json %>
+    <% meta = review["meta"] || {} %>
+    <% stats = review["final_stats"] || {} %>
+    <% timeline = review["timeline"] || [] %>
+    <% patterns = review["patterns"] || {} %>
+    <% gold_curve = review["gold_curve"] || [] %>
+
+    <!-- Header with champion info -->
+    <div class="flex flex-col sm:flex-row items-start gap-6 mb-8">
+      <!-- Champion portrait -->
+      <div class="flex-shrink-0">
+        <% if @replay.champion.present? %>
+          <img src="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/<%= @replay.champion %>.png"
+               alt="<%= @replay.champion %>"
+               class="w-20 h-20 rounded-xl border-2 <%= @replay.result == 'WIN' ? 'border-[#49b860]/50' : 'border-[#e84057]/50' %>"
+               onerror="this.style.display='none'">
+        <% end %>
+      </div>
+
+      <div class="flex-grow">
+        <div class="flex items-center gap-3 mb-2">
+          <h1 class="text-3xl font-bold text-[#f0e6d2]">
+            <%= @replay.champion || @replay.match_id %>
+          </h1>
+          <% if @replay.result.present? %>
+            <span class="<%= @replay.result == 'WIN' ? 'badge-win' : 'badge-loss' %> px-3 py-1 rounded-md text-sm font-bold font-mono">
+              <%= @replay.result %>
+            </span>
+          <% end %>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 text-sm text-[#a09b8c]">
+          <span class="font-mono text-xs"><%= @replay.match_id %></span>
+          <% if @replay.role.present? %>
+            <span><%= @replay.role %></span>
+          <% end %>
+          <span><%= @replay.duration_formatted %></span>
+          <span><%= @replay.created_at.strftime("%d/%m/%Y %H:%M") %></span>
+        </div>
+
+        <!-- KDA Bar -->
+        <% if stats["kills"] %>
+          <div class="flex items-center gap-4 mt-3">
+            <div class="text-2xl font-bold font-mono">
+              <span class="text-[#f0e6d2]"><%= stats["kills"] %></span>
+              <span class="text-[#a09b8c]/40">/</span>
+              <span class="text-[#e84057]"><%= stats["deaths"] %></span>
+              <span class="text-[#a09b8c]/40">/</span>
+              <span class="text-[#a09b8c]"><%= stats["assists"] %></span>
+            </div>
+            <% if stats["deaths"] && stats["deaths"] > 0 %>
+              <% kda = ((stats["kills"].to_f + stats["assists"].to_f) / stats["deaths"]).round(2) %>
+              <span class="text-sm font-mono <%= kda >= 3 ? 'text-[#49b860]' : kda >= 2 ? 'text-[#c89b3c]' : 'text-[#e84057]' %>">
+                <%= kda %> KDA
+              </span>
+            <% end %>
+            <% if stats["cs"] %>
+              <span class="text-sm font-mono text-[#a09b8c]"><%= stats["cs"] %> CS</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-col gap-2 flex-shrink-0">
+        <a href="<%= minimap_replay_path(@replay) %>" target="_blank"
+           class="btn-cyan px-4 py-2 rounded-lg text-xs inline-flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 11-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L5.414 15H7a1 1 0 110 2H3a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 110-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z" />
+          </svg>
+          Minimap
+        </a>
+        <%= button_to "Re-analyser", reprocess_replay_path(@replay), method: :post, class: "text-xs text-[#a09b8c] hover:text-[#c89b3c] transition-colors text-right" %>
+        <%= button_to "Supprimer", replay_path(@replay), method: :delete, data: { turbo_confirm: "Supprimer cette analyse ?" }, class: "text-xs text-[#a09b8c] hover:text-[#e84057] transition-colors text-right" %>
+      </div>
+    </div>
+
+    <!-- Verdict -->
+    <% if review["verdict"] || review.dig("coaching_review") %>
+      <div class="bg-card rounded-2xl p-6 mb-6 glow-gold">
+        <h2 class="text-lg font-bold text-[#c89b3c] mb-3 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+          Verdict
+        </h2>
+        <div class="text-[#f0e6d2] text-sm leading-relaxed whitespace-pre-line"><%= review["verdict"] || review["coaching_review"] %></div>
+      </div>
+    <% end %>
+
+    <!-- Stats grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <% stat_items = [] %>
+      <% stat_items << { label: "Kills", value: stats["kills"], color: "#f0e6d2" } if stats["kills"] %>
+      <% stat_items << { label: "Deaths", value: stats["deaths"], color: "#e84057" } if stats["deaths"] %>
+      <% stat_items << { label: "Assists", value: stats["assists"], color: "#a09b8c" } if stats["assists"] %>
+      <% stat_items << { label: "CS", value: stats["cs"], color: "#c89b3c" } if stats["cs"] %>
+      <% stat_items << { label: "CS/min", value: stats["cs_per_min"]&.round(1), color: "#c89b3c" } if stats["cs_per_min"] %>
+      <% stat_items << { label: "Vision", value: stats["vision_score"], color: "#0ac8b9" } if stats["vision_score"] %>
+      <% stat_items << { label: "Gold", value: stats["gold"]&.to_s&.gsub(/(\d)(?=(\d{3})+$)/, '\1,'), color: "#c89b3c" } if stats["gold"] %>
+      <% stat_items << { label: "Damage", value: stats["total_damage"]&.to_s&.gsub(/(\d)(?=(\d{3})+$)/, '\1,'), color: "#e84057" } if stats["total_damage"] %>
+
+      <% stat_items.first(8).each do |stat| %>
+        <div class="bg-card rounded-xl p-4 text-center">
+          <div class="text-2xl font-bold font-mono" style="color: <%= stat[:color] %>"><%= stat[:value] %></div>
+          <div class="text-xs text-[#a09b8c] mt-1"><%= stat[:label] %></div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Gold Curve -->
+    <% if gold_curve.any? %>
+      <div class="bg-card rounded-2xl p-6 mb-6">
+        <h2 class="text-lg font-bold text-[#f0e6d2] mb-4 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#c89b3c]" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+          </svg>
+          Courbe de gold
+        </h2>
+        <div class="relative h-40 flex items-end gap-px">
+          <% max_gold = gold_curve.map { |g| g.is_a?(Hash) ? (g["your_gold"] || g["gold"] || g["total_gold"] || 0) : g.to_i }.max %>
+          <% max_gold = [max_gold.to_i, 1].max %>
+          <% gold_curve.each_with_index do |point, i| %>
+            <% gold_val = point.is_a?(Hash) ? (point["your_gold"] || point["gold"] || point["total_gold"] || 0) : point.to_i %>
+            <% height_pct = [[(gold_val.to_f / max_gold * 100).round, 0].max, 100].min %>
+            <div class="flex-1 bg-gradient-to-t from-[#c89b3c]/20 to-[#c89b3c]/60 rounded-t-sm transition-all hover:from-[#c89b3c]/30 hover:to-[#c89b3c]/80 relative group"
+                 style="height: <%= height_pct %>%"
+                 title="<%= point.is_a?(Hash) ? "#{point['minute'] || i}min: #{gold_val}g" : "#{i}min: #{gold_val}g" %>">
+              <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 bg-[#0a0a0f] border border-[#2a2a3a] rounded px-2 py-1 text-xs font-mono text-[#c89b3c] whitespace-nowrap mb-1 z-10">
+                <%= gold_val %>g
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-[#a09b8c]/40 font-mono">
+          <span>0 min</span>
+          <span><%= gold_curve.length %> min</span>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Deaths Timeline -->
+    <% deaths = timeline.select { |e| e["type"] == "death" || e["detector"] == "death" } %>
+    <% if deaths.any? %>
+      <div class="bg-card rounded-2xl p-6 mb-6">
+        <h2 class="text-lg font-bold text-[#f0e6d2] mb-4 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#e84057]" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+          Morts (<%= deaths.count %>)
+        </h2>
+        <div class="space-y-3">
+          <% deaths.each do |death| %>
+            <div class="flex items-start gap-4 p-3 rounded-lg bg-[#e84057]/5 border border-[#e84057]/10">
+              <!-- Time -->
+              <div class="flex-shrink-0 w-16 text-center">
+                <span class="text-sm font-mono text-[#e84057] font-bold">
+                  <%= death["minute"] ? "#{death['minute']}:00" : death["timestamp"] || "?" %>
+                </span>
+              </div>
+
+              <!-- Info -->
+              <div class="flex-grow">
+                <div class="flex items-center gap-2 mb-1">
+                  <% zone = death["zone"] || death["classification"] || death["death_zone"] %>
+                  <% if zone %>
+                    <span class="text-xs font-mono px-2 py-0.5 rounded
+                      <%= case zone.to_s.downcase
+                          when 'dive' then 'bg-[#e84057]/20 text-[#e84057]'
+                          when 'gank' then 'bg-[#c89b3c]/20 text-[#c89b3c]'
+                          when 'overextend' then 'bg-[#e84057]/20 text-[#e84057]'
+                          when 'river' then 'bg-[#0ac8b9]/20 text-[#0ac8b9]'
+                          when 'teamfight' then 'bg-[#a09b8c]/20 text-[#a09b8c]'
+                          else 'bg-[#a09b8c]/20 text-[#a09b8c]'
+                          end %>">
+                      <%= zone %>
+                    </span>
+                  <% end %>
+                  <% if death["killer"] %>
+                    <span class="text-xs text-[#a09b8c]">Tue par <span class="text-[#f0e6d2]"><%= death["killer"] %></span></span>
+                  <% end %>
+                </div>
+                <% if death["description"] || death["context"] %>
+                  <p class="text-xs text-[#a09b8c] leading-relaxed"><%= death["description"] || death["context"] %></p>
+                <% end %>
+              </div>
+
+              <!-- Position (minimap dot) -->
+              <% if death["position"] || death["x"] %>
+                <div class="flex-shrink-0 w-16 h-16 bg-[#0a0a0f] rounded-lg border border-[#2a2a3a] relative overflow-hidden">
+                  <% x = death.dig("position", "x") || death["x"] || 0 %>
+                  <% y = death.dig("position", "y") || death["y"] || 0 %>
+                  <% x_pct = (x.to_f / 15000 * 100).clamp(5, 95) %>
+                  <% y_pct = (100 - (y.to_f / 15000 * 100)).clamp(5, 95) %>
+                  <div class="absolute w-2 h-2 rounded-full bg-[#e84057] shadow-[0_0_4px_rgba(232,64,87,0.8)]"
+                       style="left: <%= x_pct %>%; top: <%= y_pct %>%; transform: translate(-50%, -50%)"></div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Teamfights -->
+    <% teamfights = timeline.select { |e| e["type"] == "teamfight" || e["detector"] == "teamfight" } %>
+    <% if teamfights.any? %>
+      <div class="bg-card rounded-2xl p-6 mb-6">
+        <h2 class="text-lg font-bold text-[#f0e6d2] mb-4 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#c89b3c]" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+          </svg>
+          Teamfights (<%= teamfights.count %>)
+        </h2>
+        <div class="space-y-3">
+          <% teamfights.each do |tf| %>
+            <div class="flex items-center gap-4 p-3 rounded-lg bg-[#c89b3c]/5 border border-[#c89b3c]/10">
+              <div class="flex-shrink-0 w-16 text-center">
+                <span class="text-sm font-mono text-[#c89b3c] font-bold">
+                  <%= tf["minute"] ? "#{tf['minute']}:00" : tf["timestamp"] || "?" %>
+                </span>
+              </div>
+              <div class="flex-grow">
+                <% outcome = tf["outcome"] || tf["result"] %>
+                <% if outcome %>
+                  <span class="text-xs font-mono px-2 py-0.5 rounded <%= outcome.to_s.downcase == 'win' ? 'badge-win' : 'badge-loss' %>">
+                    <%= outcome %>
+                  </span>
+                <% end %>
+                <% if tf["description"] || tf["context"] %>
+                  <p class="text-xs text-[#a09b8c] mt-1"><%= tf["description"] || tf["context"] %></p>
+                <% end %>
+              </div>
+              <% if tf["kills"] || tf["player_kills"] %>
+                <div class="flex-shrink-0 text-right">
+                  <span class="text-sm font-mono text-[#f0e6d2]"><%= tf["kills"] || tf["player_kills"] || 0 %></span>
+                  <span class="text-xs text-[#a09b8c]"> kills</span>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Axes de progression -->
+    <% progression_axes = patterns["improvement_axes"] || patterns["axes_progression"] || review["improvement_axes"] || [] %>
+    <% if progression_axes.any? %>
+      <div class="bg-card rounded-2xl p-6 mb-6 glow-cyan">
+        <h2 class="text-lg font-bold text-[#0ac8b9] mb-4 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+          </svg>
+          Axes de progression
+        </h2>
+        <div class="space-y-4">
+          <% progression_axes.first(3).each_with_index do |axe, i| %>
+            <div class="flex gap-4 p-4 rounded-xl bg-[#0ac8b9]/5 border border-[#0ac8b9]/10">
+              <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-[#0ac8b9]/20 flex items-center justify-center">
+                <span class="text-sm font-bold text-[#0ac8b9] font-mono"><%= i + 1 %></span>
+              </div>
+              <div>
+                <% if axe.is_a?(Hash) %>
+                  <h4 class="text-sm font-semibold text-[#f0e6d2] mb-1"><%= axe["title"] || axe["name"] || "Axe #{i + 1}" %></h4>
+                  <p class="text-xs text-[#a09b8c] leading-relaxed"><%= axe["description"] || axe["detail"] %></p>
+                <% else %>
+                  <p class="text-sm text-[#f0e6d2] leading-relaxed"><%= axe %></p>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Coaching Review -->
+    <div class="bg-card rounded-2xl p-6 mb-6 glow-gold">
+      <h2 class="text-lg font-bold text-[#c89b3c] mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+        Review Coaching IA
+      </h2>
+
+      <% if @replay.coaching_review.present? %>
+        <div class="prose prose-invert prose-sm max-w-none text-[#a09b8c] leading-relaxed">
+          <% @replay.coaching_review.split("\n").each do |line| %>
+            <% if line.start_with?("## ") %>
+              <h2 class="text-xl font-bold text-[#f0e6d2] mt-6 mb-3"><%= line.sub("## ", "") %></h2>
+            <% elsif line.start_with?("### ") %>
+              <h3 class="text-lg font-semibold text-[#c89b3c] mt-4 mb-2"><%= line.sub("### ", "") %></h3>
+            <% elsif line.start_with?("#### ") %>
+              <h4 class="text-md font-semibold text-[#0ac8b9] mt-3 mb-1"><%= line.sub("#### ", "") %></h4>
+            <% elsif line.start_with?("**") && line.end_with?("**") %>
+              <p class="font-bold text-[#f0e6d2]"><%= line.gsub("**", "") %></p>
+            <% elsif line.start_with?("- ") %>
+              <p class="pl-4 text-sm"><span class="text-[#c89b3c]">•</span> <%= line.sub("- ", "") %></p>
+            <% elsif line.strip.empty? %>
+              <br>
+            <% else %>
+              <p class="text-sm"><%= line %></p>
+            <% end %>
+          <% end %>
+        </div>
+        <div class="mt-4 text-xs text-[#a09b8c]/40 font-mono">
+          Genere par <%= @replay.llm_provider || "IA" %>
+        </div>
+      <% else %>
+        <div class="text-center py-8">
+          <p class="text-[#a09b8c] mb-4">La review coaching n'a pas encore ete generee.</p>
+          <%= button_to "Generer la review coaching",
+                generate_coaching_replay_path(@replay),
+                method: :post,
+                class: "btn-gold px-6 py-3 rounded-xl text-sm inline-flex items-center gap-2" %>
+          <p class="text-xs text-[#a09b8c]/40 mt-3">Necessite une cle API (Claude, OpenAI ou Gemini) dans les parametres</p>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Full timeline (collapsed) -->
+    <% other_events = timeline.reject { |e| (e["type"] == "death" || e["detector"] == "death" || e["type"] == "teamfight" || e["detector"] == "teamfight") } %>
+    <% if other_events.any? %>
+      <div class="bg-card rounded-2xl p-6 mb-6">
+        <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chevron').classList.toggle('rotate-180')"
+                class="flex items-center gap-2 w-full text-left">
+          <h2 class="text-lg font-bold text-[#f0e6d2] flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#a09b8c]" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+            </svg>
+            Timeline complete (<%= other_events.count %> events)
+          </h2>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#a09b8c] transition-transform chevron" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <div class="hidden mt-4 space-y-2">
+          <% other_events.sort_by { |e| e["minute"] || e["timestamp"] || 0 }.each do |event| %>
+            <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a26] text-sm">
+              <span class="text-xs font-mono text-[#a09b8c] w-12 text-right flex-shrink-0">
+                <%= event["minute"] ? "#{event['minute']}:00" : event["timestamp"] || "" %>
+              </span>
+              <span class="text-xs font-mono px-2 py-0.5 rounded bg-[#2a2a3a] text-[#a09b8c] flex-shrink-0">
+                <%= event["type"] || event["detector"] || "event" %>
+              </span>
+              <span class="text-xs text-[#f0e6d2] truncate">
+                <%= event["description"] || event["context"] || event.inspect.truncate(100) %>
+              </span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Raw JSON (dev) -->
+    <div class="bg-card rounded-2xl p-6">
+      <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chevron').classList.toggle('rotate-180')"
+              class="flex items-center gap-2 w-full text-left">
+        <h2 class="text-sm font-medium text-[#a09b8c] flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+          JSON brut
+        </h2>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#a09b8c] transition-transform chevron" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </button>
+      <div class="hidden mt-4">
+        <pre class="text-xs font-mono text-[#a09b8c] bg-[#0a0a0f] rounded-lg p-4 overflow-x-auto max-h-96"><%= JSON.pretty_generate(review) %></pre>
+      </div>
+    </div>
+
+  <% elsif @replay.failed? %>
+    <!-- Failed state -->
+    <div class="bg-card rounded-2xl p-8 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-[#e84057]/10 flex items-center justify-center mx-auto mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#e84057]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold text-[#f0e6d2] mb-2">Analyse echouee</h2>
+      <p class="text-sm text-[#a09b8c] mb-2">
+        Match ID: <span class="font-mono text-[#f0e6d2]"><%= @replay.match_id %></span>
+      </p>
+      <% if @replay.replay_job&.error_message %>
+        <div class="bg-[#e84057]/5 border border-[#e84057]/10 rounded-lg p-3 mt-4 mb-6 max-w-lg mx-auto">
+          <p class="text-xs font-mono text-[#e84057]"><%= @replay.replay_job.error_message %></p>
+        </div>
+      <% end %>
+      <div class="flex gap-3 justify-center mt-6">
+        <%= button_to "Re-essayer", reprocess_replay_path(@replay), method: :post, class: "btn-cyan px-5 py-2.5 rounded-xl text-sm" %>
+        <%= button_to "Supprimer", replay_path(@replay), method: :delete, data: { turbo_confirm: "Supprimer cette analyse ?" }, class: "text-sm text-[#a09b8c] hover:text-[#e84057] transition-colors px-4 py-2.5" %>
+      </div>
+    </div>
+
+  <% else %>
+    <!-- Processing state -->
+    <div class="bg-card rounded-2xl p-12 text-center" id="processing-container">
+      <div class="spinner mx-auto mb-6" style="width:48px;height:48px;border-width:4px;"></div>
+      <h2 class="text-xl font-bold text-[#f0e6d2] mb-2">Analyse en cours...</h2>
+      <p class="text-sm text-[#a09b8c] mb-4">
+        Match ID: <span class="font-mono text-[#f0e6d2]"><%= @replay.match_id %></span>
+      </p>
+
+      <!-- Progress steps -->
+      <div class="max-w-sm mx-auto mt-8 space-y-3">
+        <% steps = [
+          { key: "pending", label: "En attente", icon: "clock" },
+          { key: "uploading", label: "Upload du fichier", icon: "upload" },
+          { key: "queued", label: "En file d'attente", icon: "queue" },
+          { key: "processing", label: "Extraction timeline", icon: "cog" },
+          { key: "analyzing", label: "Analyse IA", icon: "brain" },
+          { key: "completed", label: "Terminee", icon: "check" },
+        ] %>
+        <% status_order = %w[pending uploading queued processing analyzing completed] %>
+        <% current_idx = status_order.index(@replay.status) || 0 %>
+
+        <% steps.each_with_index do |step, i| %>
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
+              <%= if i < current_idx
+                    'bg-[#49b860]/20'
+                  elsif i == current_idx
+                    'bg-[#0ac8b9]/20'
+                  else
+                    'bg-[#2a2a3a]'
+                  end %>">
+              <% if i < current_idx %>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#49b860]" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              <% elsif i == current_idx %>
+                <div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>
+              <% else %>
+                <div class="w-2 h-2 rounded-full bg-[#a09b8c]/20"></div>
+              <% end %>
+            </div>
+            <span class="text-sm <%= if i < current_idx
+                                        'text-[#49b860]'
+                                      elsif i == current_idx
+                                        'text-[#0ac8b9] font-medium'
+                                      else
+                                        'text-[#a09b8c]/40'
+                                      end %>">
+              <%= step[:label] %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+
+      <p class="text-xs text-[#a09b8c]/40 mt-8">Actualisation automatique toutes les 5 secondes</p>
+    </div>
+
+    <!-- Auto-refresh for processing replay -->
+    <script>
+      setInterval(function() {
+        fetch(window.location.href, { headers: { 'Accept': 'text/html' } })
+          .then(response => response.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            // If the page now has a completed review, reload fully
+            if (!doc.querySelector('#processing-container')) {
+              window.location.reload();
+            } else {
+              // Update the processing container
+              const newContainer = doc.querySelector('#processing-container');
+              const currentContainer = document.querySelector('#processing-container');
+              if (newContainer && currentContainer) {
+                currentContainer.innerHTML = newContainer.innerHTML;
+              }
+            }
+          })
+          .catch(() => {});
+      }, 5000);
+    </script>
+  <% end %>
+</div>

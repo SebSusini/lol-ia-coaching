@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html class="h-full">
+  <head>
+    <title><%= content_for(:title) || "LoL IA Coaching" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag :app %>
+    <%= javascript_importmap_tags %>
+
+    <style>
+      :root {
+        --color-bg: #0a0a0f;
+        --color-bg-card: #12121a;
+        --color-bg-card-hover: #1a1a26;
+        --color-border: #2a2a3a;
+        --color-gold: #c89b3c;
+        --color-gold-light: #f0e6d2;
+        --color-cyan: #0ac8b9;
+        --color-red: #e84057;
+        --color-green: #49b860;
+        --color-text: #a09b8c;
+        --color-text-light: #f0e6d2;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--color-bg);
+        color: var(--color-text);
+      }
+
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Gradient glow effects */
+      .glow-gold {
+        box-shadow: 0 0 20px rgba(200, 155, 60, 0.15), 0 0 60px rgba(200, 155, 60, 0.05);
+      }
+
+      .glow-cyan {
+        box-shadow: 0 0 20px rgba(10, 200, 185, 0.15), 0 0 60px rgba(10, 200, 185, 0.05);
+      }
+
+      .text-gradient-gold {
+        background: linear-gradient(135deg, #c89b3c, #f0e6d2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .text-gradient-cyan {
+        background: linear-gradient(135deg, #0ac8b9, #0fe6d4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .bg-card {
+        background-color: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+      }
+
+      .bg-card:hover {
+        background-color: var(--color-bg-card-hover);
+        border-color: rgba(200, 155, 60, 0.3);
+      }
+
+      .btn-gold {
+        background: linear-gradient(135deg, #c89b3c, #a07628);
+        color: #0a0a0f;
+        font-weight: 700;
+        transition: all 0.2s;
+      }
+
+      .btn-gold:hover {
+        background: linear-gradient(135deg, #f0e6d2, #c89b3c);
+        box-shadow: 0 0 20px rgba(200, 155, 60, 0.4);
+        transform: translateY(-1px);
+      }
+
+      .btn-cyan {
+        background: linear-gradient(135deg, #0ac8b9, #088a80);
+        color: #0a0a0f;
+        font-weight: 700;
+        transition: all 0.2s;
+      }
+
+      .btn-cyan:hover {
+        background: linear-gradient(135deg, #0fe6d4, #0ac8b9);
+        box-shadow: 0 0 20px rgba(10, 200, 185, 0.4);
+        transform: translateY(-1px);
+      }
+
+      .badge-win {
+        background: rgba(73, 184, 96, 0.15);
+        color: #49b860;
+        border: 1px solid rgba(73, 184, 96, 0.3);
+      }
+
+      .badge-loss {
+        background: rgba(232, 64, 87, 0.15);
+        color: #e84057;
+        border: 1px solid rgba(232, 64, 87, 0.3);
+      }
+
+      .status-pending { color: #a09b8c; }
+      .status-processing, .status-uploading, .status-queued, .status-analyzing { color: #0ac8b9; }
+      .status-completed { color: #49b860; }
+      .status-failed { color: #e84057; }
+
+      /* Animated pulse for processing states */
+      @keyframes pulse-cyan {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .animate-pulse-cyan {
+        animation: pulse-cyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      /* Spinner */
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .spinner {
+        border: 3px solid rgba(10, 200, 185, 0.2);
+        border-top-color: #0ac8b9;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 0.8s linear infinite;
+      }
+
+      /* Background pattern */
+      .bg-pattern {
+        background-image:
+          radial-gradient(circle at 20% 50%, rgba(200, 155, 60, 0.03) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(10, 200, 185, 0.03) 0%, transparent 50%),
+          radial-gradient(circle at 50% 80%, rgba(200, 155, 60, 0.02) 0%, transparent 50%);
+      }
+    </style>
+  </head>
+
+  <body class="h-full bg-pattern flex flex-col min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-[#2a2a3a] bg-[#0a0a0f]/90 backdrop-blur-sm sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+          <!-- Logo -->
+          <a href="<%= root_path %>" class="flex items-center gap-3 group">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c89b3c] to-[#a07628] flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#0a0a0f]" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10 2L3 7l7 5 7-5-7-5zM3 13l7 5 7-5-7-5-7 5z"/>
+              </svg>
+            </div>
+            <span class="text-xl font-bold text-gradient-gold tracking-tight">LoL IA Coaching</span>
+          </a>
+
+          <!-- Right side -->
+          <div class="flex items-center gap-4">
+            <% if logged_in? %>
+              <a href="<%= replays_path %>" class="text-sm text-[#a09b8c] hover:text-[#f0e6d2] transition-colors">
+                Mes replays
+              </a>
+              <div class="flex items-center gap-3 pl-4 border-l border-[#2a2a3a]">
+                <div class="text-right">
+                  <div class="text-sm font-semibold text-[#f0e6d2]"><%= current_user.riot_name %></div>
+                  <div class="text-xs text-[#a09b8c] font-mono">#<%= current_user.riot_tag %></div>
+                </div>
+                <%= button_to "Deconnexion", logout_path, method: :delete, class: "text-xs text-[#a09b8c] hover:text-[#e84057] transition-colors ml-2" %>
+              </div>
+            <% else %>
+              <a href="/auth/riot/callback?name=Banditacciu&tag=EUW" class="btn-gold px-4 py-2 rounded-lg text-sm">
+                Se connecter
+              </a>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Flash messages -->
+    <% if notice.present? %>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div class="bg-[#49b860]/10 border border-[#49b860]/30 rounded-lg px-4 py-3 text-sm text-[#49b860]">
+          <%= notice %>
+        </div>
+      </div>
+    <% end %>
+    <% if alert.present? %>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div class="bg-[#e84057]/10 border border-[#e84057]/30 rounded-lg px-4 py-3 text-sm text-[#e84057]">
+          <%= alert %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Main content -->
+    <main class="flex-grow">
+      <%= yield %>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-[#2a2a3a] mt-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div class="flex items-center gap-2 text-sm text-[#a09b8c]">
+            <span>Made with</span>
+            <span class="font-semibold text-gradient-cyan">❤️</span>
+            <span class="text-[#2a2a3a]">|</span>
+            <span class="text-xs font-mono">v5.0</span>
+          </div>
+          <div class="text-xs text-[#a09b8c]/50">
+            LoL IA Coaching n'est pas affilie a Riot Games
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

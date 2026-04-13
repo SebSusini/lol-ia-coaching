@@ -1,0 +1,212 @@
+<% content_for(:title, "Mes replays - LoL IA Coaching") %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-[#f0e6d2]">Mes replays</h1>
+      <p class="text-sm text-[#a09b8c] mt-1"><%= @replays.count %> game<%= @replays.count > 1 ? 's' : '' %> analysee<%= @replays.count > 1 ? 's' : '' %></p>
+    </div>
+
+    <button onclick="document.getElementById('upload-form').classList.toggle('hidden')"
+            class="btn-gold px-5 py-2.5 rounded-xl text-sm inline-flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+      </svg>
+      Analyser une nouvelle game
+    </button>
+  </div>
+
+  <!-- Upload Form (hidden by default) -->
+  <div id="upload-form" class="hidden mb-8">
+    <div class="bg-card rounded-2xl p-6 glow-gold">
+      <h2 class="text-lg font-bold text-[#f0e6d2] mb-4">Nouvelle analyse</h2>
+
+      <%= form_with model: Replay.new, url: replays_path, multipart: true, class: "space-y-4" do |f| %>
+        <!-- ROFL File Upload -->
+        <div>
+          <label class="block text-sm font-medium text-[#a09b8c] mb-3">
+            Upload ton fichier .rofl
+          </label>
+          <label for="replay_rofl_file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#2a2a3a] rounded-xl cursor-pointer hover:border-[#c89b3c]/50 transition-colors bg-[#0a0a0f]/50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#a09b8c] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span class="text-sm text-[#a09b8c]">Glisse ton <span class="text-[#c89b3c] font-semibold">.rofl</span> ici ou clique pour choisir</span>
+            <span class="text-xs text-[#a09b8c]/40 mt-1" id="rofl-filename">Le Match ID sera extrait automatiquement</span>
+            <input type="file"
+                   name="replay[rofl_file]"
+                   id="replay_rofl_file"
+                   accept=".rofl"
+                   class="hidden"
+                   onchange="
+                     var name = this.files[0]?.name || '';
+                     document.getElementById('rofl-filename').textContent = name;
+                     var matchId = name.replace('.rofl','').replace('-','_');
+                     document.getElementById('replay_match_id').value = matchId;
+                   ">
+          </label>
+          <div class="mt-3">
+            <input type="text"
+                   name="replay[match_id]"
+                   id="replay_match_id"
+                   placeholder="Match ID (auto-rempli depuis le .rofl)"
+                   required
+                   readonly
+                   class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 text-sm text-[#c89b3c] font-mono focus:outline-none">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button"
+                  onclick="document.getElementById('upload-form').classList.add('hidden')"
+                  class="px-4 py-2 rounded-lg text-sm text-[#a09b8c] hover:text-[#f0e6d2] transition-colors">
+            Annuler
+          </button>
+          <button type="submit" class="btn-cyan px-6 py-2.5 rounded-xl text-sm inline-flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+            Lancer l'analyse
+          </button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Replays List -->
+  <% if @replays.any? %>
+    <div class="space-y-3">
+      <% @replays.each do |replay| %>
+        <a href="<%= replay_path(replay) %>"
+           class="bg-card rounded-xl p-4 sm:p-5 flex items-center gap-4 transition-all duration-200 block group"
+           id="replay-<%= replay.id %>">
+
+          <!-- Champion icon -->
+          <div class="flex-shrink-0">
+            <% if replay.champion.present? %>
+              <img src="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/<%= replay.champion %>.png"
+                   alt="<%= replay.champion %>"
+                   class="w-12 h-12 rounded-lg border border-[#2a2a3a] group-hover:border-[#c89b3c]/50 transition-colors"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="w-12 h-12 rounded-lg bg-[#1a1a26] border border-[#2a2a3a] items-center justify-center hidden">
+                <span class="text-[#a09b8c] text-xs font-mono"><%= replay.champion[0..2] %></span>
+              </div>
+            <% else %>
+              <div class="w-12 h-12 rounded-lg bg-[#1a1a26] border border-[#2a2a3a] flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#a09b8c]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            <% end %>
+          </div>
+
+          <!-- Match info -->
+          <div class="flex-grow min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-sm font-semibold text-[#f0e6d2] font-mono truncate"><%= replay.match_id %></span>
+              <% if replay.role.present? %>
+                <span class="text-xs text-[#a09b8c]/60 font-mono"><%= replay.role %></span>
+              <% end %>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-[#a09b8c]">
+              <% if replay.champion.present? %>
+                <span><%= replay.champion %></span>
+              <% end %>
+              <% if replay.review_json.present? && replay.review_json.dig("final_stats") %>
+                <% stats = replay.review_json["final_stats"] %>
+                <% if stats["kills"] %>
+                  <span class="font-mono">
+                    <span class="text-[#f0e6d2]"><%= stats["kills"] %></span>/<span class="text-[#e84057]"><%= stats["deaths"] %></span>/<span class="text-[#a09b8c]"><%= stats["assists"] %></span>
+                  </span>
+                <% end %>
+              <% end %>
+              <span><%= replay.duration_formatted %></span>
+              <span class="text-[#a09b8c]/40"><%= time_ago_in_words(replay.created_at) %></span>
+            </div>
+          </div>
+
+          <!-- Result badge -->
+          <div class="flex-shrink-0 flex items-center gap-3">
+            <% if replay.result.present? %>
+              <span class="<%= replay.result == 'WIN' ? 'badge-win' : 'badge-loss' %> px-3 py-1 rounded-md text-xs font-bold font-mono">
+                <%= replay.result %>
+              </span>
+            <% end %>
+
+            <!-- Status -->
+            <div class="text-right min-w-[100px]">
+              <% case replay.status %>
+              <% when "completed" %>
+                <span class="inline-flex items-center gap-1.5 text-xs status-completed font-medium">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  Terminee
+                </span>
+              <% when "failed" %>
+                <span class="inline-flex items-center gap-1.5 text-xs status-failed font-medium">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                  Erreur
+                </span>
+              <% when "pending" %>
+                <span class="inline-flex items-center gap-1.5 text-xs status-pending font-medium">
+                  <div class="w-3 h-3 rounded-full border-2 border-[#a09b8c]/40 border-t-[#a09b8c]" style="animation: spin 1s linear infinite;"></div>
+                  En attente
+                </span>
+              <% else %>
+                <span class="inline-flex items-center gap-1.5 text-xs status-processing font-medium animate-pulse-cyan">
+                  <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
+                  <%= replay.status.humanize %>
+                </span>
+              <% end %>
+            </div>
+          </div>
+        </a>
+      <% end %>
+    </div>
+  <% else %>
+    <!-- Empty state -->
+    <div class="bg-card rounded-2xl p-12 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-[#c89b3c]/10 flex items-center justify-center mx-auto mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#c89b3c]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-[#f0e6d2] mb-2">Aucune replay analysee</h3>
+      <p class="text-sm text-[#a09b8c] mb-6">Lance ta premiere analyse pour commencer ton coaching IA.</p>
+      <button onclick="document.getElementById('upload-form').classList.remove('hidden'); window.scrollTo({top: 0, behavior: 'smooth'})"
+              class="btn-gold px-6 py-2.5 rounded-xl text-sm inline-flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
+        Analyser ma premiere game
+      </button>
+    </div>
+  <% end %>
+</div>
+
+<!-- Auto-refresh for in-progress replays -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const hasProcessing = document.querySelector('.animate-pulse-cyan, .status-pending');
+    if (hasProcessing) {
+      setInterval(function() {
+        fetch(window.location.href, { headers: { 'Accept': 'text/html' } })
+          .then(response => response.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newList = doc.querySelector('.space-y-3');
+            const currentList = document.querySelector('.space-y-3');
+            if (newList && currentList) {
+              currentList.innerHTML = newList.innerHTML;
+            }
+          })
+          .catch(() => {});
+      }, 5000);
+    }
+  });
+</script>
