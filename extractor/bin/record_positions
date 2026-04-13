@@ -1,0 +1,122 @@
+#!/usr/bin/env ruby
+# Reads champion positions from LoL replay memory via Frida
+# Usage: ruby record_positions [output_file]
+# The replay must be running in the LoL client
+
+require "json"
+require "open3"
+
+OUTPUT_FILE = ARGV[0] || "output/positions_live.json"
+POLL_INTERVAL = 2 # seconds between scans
+
+FRIDA_SCRIPT = <<~JS
+(function(){
+var r={};
+var ranges=Process.enumerateRanges("rw-");
+for(var i=0;i<ranges.length;i++){
+if(ranges[i].size<4096||ranges[i].size>20000000)continue;
+try{
+var sz=Math.min(ranges[i].size,3000000);
+for(var o=0;o<sz-8;o+=4){
+var x=ranges[i].base.add(o).readFloat();
+var y=ranges[i].base.add(o+4).readFloat();
+if(x>500&&x<14500&&y>500&&y<14500&&x===x&&y===y){
+r[ranges[i].base.add(o).toString()]={x:x,y:y};
+if(Object.keys(r).length>=500)break;
+}}}catch(e){}
+if(Object.keys(r).length>=500)break;
+}
+send(r);
+})()
+JS
+
+def scan_positions
+  pid = `pgrep LeagueofLegends`.strip
+  return nil if pid.empty?
+
+  cmd = "python3 -c \"
+import frida,json,os,time
+s=frida.attach(#{pid})
+sc=s.create_script('''#{FRIDA_SCRIPT}''')
+r={}
+sc.on('message',lambda m,d:r.update(m['payload']) if m['type']=='send' else None)
+sc.load()
+time.sleep(1)
+sc.unload();s.detach()
+print(json.dumps(r))
+\""
+
+  stdout, status = Open3.capture2(cmd)
+  return nil unless status.success?
+
+  JSON.parse(stdout.strip) rescue nil
+end
+
+puts "Scanning positions from LoL replay..."
+puts "Output: #{OUTPUT_FILE}"
+puts "Press Ctrl+C to stop"
+
+snapshots = []
+prev_scan = nil
+moving_addrs = nil
+
+# First: do 2 scans to find MOVING addresses (champions)
+puts "\nCalibrating... (finding moving entities)"
+scan1 = scan_positions
+sleep POLL_INTERVAL + 1
+scan2 = scan_positions
+
+if scan1 && scan2
+  moving_addrs = []
+  scan1.each do |addr, pos1|
+    if scan2[addr]
+      pos2 = scan2[addr]
+      dx = (pos1["x"] - pos2["x"]).abs
+      dy = (pos1["y"] - pos2["y"]).abs
+      if dx > 5 || dy > 5
+        moving_addrs << addr
+      end
+    end
+  end
+  puts "Found #{moving_addrs.size} moving positions (champions + minions)"
+end
+
+# Now poll only the moving addresses
+puts "\nRecording... (Ctrl+C to stop)\n"
+loop do
+  scan = scan_positions
+  break unless scan
+
+  if moving_addrs
+    positions = moving_addrs.filter_map do |addr|
+      next unless scan[addr]
+      { x: scan[addr]["x"].round(1), y: scan[addr]["y"].round(1), addr: addr }
+    end
+  else
+    positions = scan.map { |addr, pos| { x: pos["x"].round(1), y: pos["y"].round(1), addr: addr } }
+  end
+
+  snapshot = {
+    timestamp: Time.now.to_f,
+    positions: positions
+  }
+  snapshots << snapshot
+
+  print "\r[#{snapshots.size}] #{positions.size} positions tracked"
+
+  sleep POLL_INTERVAL
+rescue Interrupt
+  break
+end
+
+result = {
+  recording_info: {
+    snapshots: snapshots.size,
+    poll_interval: POLL_INTERVAL,
+    moving_addresses: moving_addrs&.size || 0
+  },
+  snapshots: snapshots
+}
+
+File.write(OUTPUT_FILE, JSON.pretty_generate(result))
+puts "\nSaved #{snapshots.size} snapshots to #{OUTPUT_FILE}"
