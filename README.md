@@ -111,7 +111,7 @@ python3 tools/frida_scan.py output/positions.json
 
 **Ce que tu obtiens en plus :** positions en temps reel de tous les champions et entites.
 
-> Note : Frida lit la memoire en lecture seule. Aucun risque de ban — c'est un replay offline, pas une game en ligne.
+> **Attention anti-cheat (Vanguard)** : Frida lit la memoire en lecture seule d'un replay offline, pas d'une game en ligne. Le replay viewer est un processus separe, pas protege par Vanguard. Cependant : ne jamais utiliser Frida sur un processus de game live — Vanguard detecte l'injection de code et cela peut entrainer un ban permanent. Le mode Frida est concu uniquement pour les replays offline.
 
 ### Mode 4 — Multi-game Review
 
@@ -200,6 +200,13 @@ TOP 3 ERREURS RECURRENTES :
 - [ ] Interface web pour les reviews
 - [ ] API Claude automatisee (plus de copier/coller)
 - [ ] Decodage direct du .rofl (sans replay)
+
+## Securite
+
+- **Cles API** : toutes les cles (Riot, Anthropic, OpenAI, Gemini, Mistral) sont dans `.env` qui est git-ignored. Ne jamais hardcoder de cle dans le code. Les cles API Riot expirent toutes les 24h.
+- **SSL** : les connexions aux APIs externes (Riot, LLM providers) utilisent HTTPS avec verification SSL standard. Les deux seules exceptions sont les APIs locales du client LoL (`localhost:2999` pour le Live Client et `127.0.0.1` pour le LCU) qui utilisent des certificats auto-signes — `VERIFY_NONE` est utilise uniquement pour ces connexions localhost.
+- **Anti-cheat (Vanguard)** : le mode Frida ne doit etre utilise que sur des replays offline. Ne jamais attacher Frida a un processus de game en ligne — risque de ban permanent.
+- **Donnees** : les fichiers `.rofl`, les JSON de sortie, et le cache d'items sont git-ignored. Aucune donnee personnelle n'est commitee.
 
 ## Contribuer
 

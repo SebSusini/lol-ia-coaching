@@ -45,6 +45,9 @@ class LCUClient
     uri = URI("https://127.0.0.1:#{@port}#{path}")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
+    # SECURITY NOTE: VERIFY_NONE is required here because the LCU (League Client
+    # Update) API runs on localhost with a self-signed certificate. This only connects
+    # to 127.0.0.1 and is safe for local-only communication.
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     http.open_timeout = 5
     http.read_timeout = 10

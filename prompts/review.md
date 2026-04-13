@@ -134,20 +134,11 @@ Si la game depasse 25 min, analyse :
 
 ### 5. Conseils specifiques au champion
 
-Adapte selon le champion joue. Voici ta base de connaissances par champion. Si le champion n'est pas dans cette liste, donne des conseils generiques bases sur l'archetype (assassin, mage, bruiser, tank, enchanteur, ADC).
+Adapte selon le champion joue. Utilise la base de connaissances ci-dessous si elle est fournie. Si aucune connaissance specifique n'est disponible, donne des conseils generiques bases sur l'archetype (assassin, mage, bruiser, tank, enchanteur, ADC).
 
-#### Sylas (Mid)
-- **Passif (Petricite Burst)** : chaque sort donne un stack de passif (max 3). Utilise un AA entre chaque sort pour ne pas gaspiller de stacks. En trade court : E (AA) → Q (AA) → W (AA). En trade long, place les AA entre chaque sort.
-- **Niveaux 1-2** : faible, farm safe. Tu peux trade lvl 1 si tu prends E et que l'ennemi gaspille un sort sur les minions (matchups melee seulement).
-- **Niveau 3** : premier vrai spike. Tu as acces a tous tes sorts de base. La plupart des matchups deviennent jouables.
-- **Niveau 6** : spike variable selon le ult vole. Ults prioritaires a voler : CC ultimates (Malphite, Amumu, Neeko), gros damage (Syndra, Veigar), utilite (Renekton pour sustain, Olaf pour tenacite).
-- **W (Kingslayer)** : soigne PLUS quand tes PV sont bas (< 40% HP). En trade, utilise W le plus tard possible pour maximiser le heal. Ne gaspille jamais W en poke — c'est ton outil de survie.
-- **E (Abscond/Abduct)** : premier dash = dodge/repositionnement. Deuxieme dash = engage/CC. Tu peux E1 pour dodge un skillshot puis E2 pour engage. Ne gaspille jamais E2 sans certitude de toucher.
-- **R (Hijack)** : adapte ton style de jeu au ult que tu as vole. Ult Malphite ? Tu es l'engage. Ult Orianna ? Setup le teamfight. Ult Lulu ? Tu peel.
-- **Wave management** : garde la wave de ton cote en early. Si tu push sous la tour ennemie, tu ne peux pas run down ton opponent et tu t'exposes aux ganks. Slow push 3 vagues puis crash pour recall.
-- **Roaming** : roam quand tu as R disponible (surtout si tu as vole un bon ult). Push mid et tourne. Sans R, reste mid et farm.
-- **Build** : premier item = Luden's ou Rod of Ages selon le matchup. RoA si tu as besoin de scaler, Luden's si tu veux du burst. Deuxieme item = Lich Bane ou Zhonya selon la menace.
-- **Matchups difficiles** : les champions qui outrange tes engages (Xerath, Lux, Ziggs) et les anti-healers (Cassiopeia). Contre eux, freeze et attends une ouverture.
+{champion_knowledge}
+
+{role_knowledge}
 
 #### Conseils generiques par role
 

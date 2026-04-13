@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Generates champion knowledge for the coaching prompt
+# Usage: bin/learn-champion "Gwen" "jungle"
+#        bin/learn-champion "Sylas" "mid"
+
+CHAMPION="${1:-}"
+ROLE="${2:-}"
+
+if [ -z "$CHAMPION" ] || [ -z "$ROLE" ]; then
+    echo "Usage: bin/learn-champion <champion> <role>"
+    echo "Example: bin/learn-champion Gwen jungle"
+    exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+CHAMPION_LOWER=$(echo "$CHAMPION" | tr '[:upper:]' '[:lower:]')
+ROLE_LOWER=$(echo "$ROLE" | tr '[:upper:]' '[:lower:]')
+OUTPUT_FILE="$SCRIPT_DIR/prompts/champions/${CHAMPION_LOWER}_${ROLE_LOWER}.md"
+
+if [ -f "$OUTPUT_FILE" ]; then
+    echo "Le fichier $OUTPUT_FILE existe deja."
+    read -p "Ecraser ? (y/n) " CONFIRM
+    if [ "$CONFIRM" != "y" ]; then exit 0; fi
+fi
+
+echo "Generation des connaissances pour $CHAMPION $ROLE..."
+
+cat > "$OUTPUT_FILE" << TEMPLATE
+## $CHAMPION ($ROLE)
+
+### Identite
+- **Type** : [a remplir - assassin/mage/bruiser/tank/enchanteur/ADC/jungler AP/etc.]
+- **Style** : [a remplir - burst/sustained/poke/engage/etc.]
+- **Difficulte** : [a remplir - facile/moyen/difficile]
+
+### Power spikes
+- **Niveau 3** : [a remplir]
+- **Niveau 6** : [a remplir]
+- **Premier item** : [a remplir - quel item, quand approximativement]
+- **2 items** : [a remplir]
+
+### Build standard
+- **Runes** : [a remplir]
+- **Summoner spells** : [a remplir]
+- **Items** : [a remplir - ordre de build]
+
+### Combos principaux
+- **Trade court** : [a remplir]
+- **All-in** : [a remplir]
+- **Teamfight** : [a remplir]
+
+### Forces
+- [a remplir]
+
+### Faiblesses
+- [a remplir]
+
+### Matchups
+- **Faciles** : [a remplir]
+- **Difficiles** : [a remplir]
+
+### Erreurs courantes
+1. [a remplir]
+2. [a remplir]
+3. [a remplir]
+
+### Conseils specifiques par phase
+- **Early (0-14 min)** : [a remplir]
+- **Mid (14-25 min)** : [a remplir]
+- **Late (25+ min)** : [a remplir]
+TEMPLATE
+
+echo ""
+echo "Template cree: $OUTPUT_FILE"
+echo ""
+echo "Le fichier contient un template a remplir. Tu peux :"
+echo "  1. Le remplir manuellement avec tes connaissances"
+echo "  2. Demander a Claude Code : 'Remplis prompts/champions/${CHAMPION_LOWER}_${ROLE_LOWER}.md avec les connaissances actuelles de $CHAMPION $ROLE'"
+echo ""
+echo "Une fois rempli, les prochaines reviews de $CHAMPION $ROLE utiliseront ces connaissances automatiquement."

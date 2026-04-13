@@ -83,11 +83,11 @@ fi
 
 REVIEW_FILE="$OUTPUT_DIR/${BASENAME}_review.json"
 
-EXTRACT_ARGS="--summoner \"$SUMMONER\" --output \"$REVIEW_FILE\""
-[ -n "$POSITIONS_FILE" ] && EXTRACT_ARGS="$EXTRACT_ARGS --positions \"$POSITIONS_FILE\""
-[ -n "$TIMELINE_FILE" ] && EXTRACT_ARGS="$EXTRACT_ARGS --timeline \"$TIMELINE_FILE\""
+EXTRACT_CMD=(ruby "$EXTRACTOR_DIR/bin/extract" --summoner "$SUMMONER" --output "$REVIEW_FILE")
+[ -n "$POSITIONS_FILE" ] && EXTRACT_CMD+=(--positions "$POSITIONS_FILE")
+[ -n "$TIMELINE_FILE" ] && EXTRACT_CMD+=(--timeline "$TIMELINE_FILE")
 
-eval ruby "$EXTRACTOR_DIR/bin/extract" $EXTRACT_ARGS
+"${EXTRACT_CMD[@]}"
 
 echo ""
 echo "==> Done! Review JSON ready at: $REVIEW_FILE"

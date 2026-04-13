@@ -16,6 +16,9 @@ def fetch(path)
   uri = URI("https://127.0.0.1:2999#{path}")
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
+  # SECURITY NOTE: VERIFY_NONE is required here because the LoL Live Client API
+  # (localhost:2999) uses a self-signed certificate. This is safe because it only
+  # connects to localhost and is used exclusively for reading replay data.
   http.verify_mode = OpenSSL::SSL::VERIFY_NONE
   http.open_timeout = 3
   http.read_timeout = 3

@@ -42,9 +42,30 @@ extractor = Extractor.new(
 review_data = extractor.extract
 review_json = JSON.pretty_generate(review_data)
 
-# Step 2: Load prompt
+# Step 2: Load prompt + champion/role knowledge
 prompt_path = File.join(__dir__, "..", "..", "prompts", "review.md")
 prompt_template = File.read(prompt_path)
+
+# Load champion-specific knowledge if available
+champion = (review_data[:meta][:champion] || "").downcase
+role = (review_data[:meta][:role] || "").downcase
+prompts_dir = File.join(__dir__, "..", "..", "prompts")
+
+champion_knowledge = ""
+champion_file = File.join(prompts_dir, "champions", "#{champion}_#{role}.md")
+if File.exist?(champion_file)
+  champion_knowledge = File.read(champion_file)
+  puts "  Champion knowledge loaded: #{champion}_#{role}.md"
+else
+  puts "  No champion knowledge for #{champion} #{role}. Run: bin/learn-champion #{champion.capitalize} #{role}"
+end
+
+role_knowledge = ""
+role_file = File.join(prompts_dir, "roles", "#{role}.md")
+if File.exist?(role_file)
+  role_knowledge = File.read(role_file)
+  puts "  Role knowledge loaded: #{role}.md"
+end
 
 # Build the full prompt
 full_prompt = prompt_template
@@ -55,6 +76,8 @@ full_prompt = prompt_template
   .gsub("{duration}", "#{(review_data[:meta][:duration_seconds] || 0) / 60} minutes")
   .gsub("{elo}", "Emerald 2")
   .gsub("{json_content}", review_json)
+  .gsub("{champion_knowledge}", champion_knowledge)
+  .gsub("{role_knowledge}", role_knowledge)
 
 # Step 3: Call LLM API
 def call_claude(prompt, model)
@@ -136,6 +159,8 @@ def call_gemini(prompt, model)
   raise "Set GEMINI_API_KEY in .env" unless api_key
 
   model ||= "gemini-2.0-flash"
+  # NOTE: Gemini API requires the key as a query parameter (not a header).
+  # This is Google's API design, not a security flaw on our side.
   uri = URI("https://generativelanguage.googleapis.com/v1beta/models/#{model}:generateContent?key=#{api_key}")
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
