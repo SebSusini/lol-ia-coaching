@@ -33,10 +33,7 @@ class ReplayProcessJob < ApplicationJob
     )
     review = extractor.extract
 
-    # Step 4: Generate LLM review
-    # TODO: Call LLM API with the review JSON + prompt
-
-    # Step 5: Save results
+    # Step 4: Save extraction results
     replay.update!(
       status: :completed,
       champion: review[:meta][:champion],
@@ -44,6 +41,9 @@ class ReplayProcessJob < ApplicationJob
       result: review[:meta][:result],
       review_json: review
     )
+
+    # Step 5: Trigger coaching review via LLM
+    CoachingReviewJob.perform_later(replay.id)
 
     # Clean up
     File.delete(timeline_path) if File.exist?(timeline_path)

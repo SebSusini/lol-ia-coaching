@@ -70,7 +70,14 @@ class ReplaysController < ApplicationController
   end
 
   def generate_minimap_html(replay)
-    # TODO: integrate with Visualizer class
-    "<h1>Minimap for #{replay.match_id}</h1>"
+    # Write review JSON to temp file for Visualizer
+    tmp_path = Rails.root.join("tmp", "#{replay.match_id}_review.json")
+    File.write(tmp_path, replay.review_json.to_json)
+
+    visualizer = Visualizer.new(tmp_path.to_s)
+    html = visualizer.generate_html
+  ensure
+    File.delete(tmp_path) if tmp_path && File.exist?(tmp_path)
+    html || "<p>Erreur lors de la generation de la minimap.</p>"
   end
 end

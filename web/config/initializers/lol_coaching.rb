@@ -9,6 +9,7 @@ if Dir.exist?(extractor_lib)
   require "extractor"
   require "game_context"
   require "item_resolver"
+  require "visualizer"
 
   Rails.logger.info "[LoL Coaching] Extractor lib loaded from #{extractor_lib}" if defined?(Rails.logger) && Rails.logger
 end

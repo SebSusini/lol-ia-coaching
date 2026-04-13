@@ -29,23 +29,24 @@
           et Claude te genere un coaching personnalise.
         </p>
 
-        <!-- CTA Buttons -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <a href="/auth/riot/callback?name=Banditacciu&tag=EUW"
-             class="btn-gold px-8 py-4 rounded-xl text-lg inline-flex items-center gap-3 group">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-            </svg>
-            Se connecter avec Riot
+        <!-- Login Form -->
+        <form action="/auth/riot/callback" method="get"
+              class="flex flex-col sm:flex-row gap-3 justify-center items-center max-w-lg mx-auto">
+          <div class="flex items-center bg-[#12121a] border border-[#2a2a3a] rounded-xl overflow-hidden focus-within:border-[#c89b3c]/50 transition-colors w-full sm:w-auto">
+            <input type="text" name="name" placeholder="Riot Name" required
+                   class="bg-transparent px-4 py-3 text-[#f0e6d2] placeholder-[#a09b8c]/40 focus:outline-none w-full sm:w-44 text-sm">
+            <span class="text-[#a09b8c]/30 text-lg font-light">#</span>
+            <input type="text" name="tag" placeholder="EUW" required
+                   class="bg-transparent px-3 py-3 text-[#f0e6d2] placeholder-[#a09b8c]/40 focus:outline-none w-20 text-sm">
+          </div>
+          <button type="submit"
+                  class="btn-gold px-8 py-3 rounded-xl text-sm inline-flex items-center gap-2 group whitespace-nowrap">
+            Commencer
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
-          </a>
-          <a href="/auth/riot/callback?name=Demo&tag=TEST"
-             class="text-sm text-[#a09b8c] hover:text-[#f0e6d2] transition-colors underline underline-offset-4 decoration-[#2a2a3a] hover:decoration-[#a09b8c]">
-            Demo login (sans compte Riot)
-          </a>
-        </div>
+          </button>
+        </form>
       </div>
     </div>
   </section>

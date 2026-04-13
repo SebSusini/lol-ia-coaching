@@ -318,14 +318,26 @@
           Genere par <%= @replay.llm_provider || "IA" %>
         </div>
       <% else %>
-        <div class="text-center py-8">
-          <p class="text-[#a09b8c] mb-4">La review coaching n'a pas encore ete generee.</p>
-          <%= button_to "Generer la review coaching",
+        <div class="text-center py-8" id="coaching-pending">
+          <div class="spinner mx-auto mb-4" style="width:32px;height:32px;border-width:3px;"></div>
+          <p class="text-[#a09b8c] mb-4">Review coaching en cours de generation...</p>
+          <p class="text-xs text-[#a09b8c]/40">Actualisation automatique toutes les 5 secondes</p>
+          <%= button_to "Re-generer",
                 generate_coaching_replay_path(@replay),
                 method: :post,
-                class: "btn-gold px-6 py-3 rounded-xl text-sm inline-flex items-center gap-2" %>
-          <p class="text-xs text-[#a09b8c]/40 mt-3">Necessite une cle API (Claude, OpenAI ou Gemini) dans les parametres</p>
+                class: "text-xs text-[#a09b8c] hover:text-[#c89b3c] transition-colors mt-4" %>
         </div>
+        <script>
+          setInterval(function() {
+            fetch(window.location.href, { headers: { 'Accept': 'text/html' } })
+              .then(function(r) { return r.text(); })
+              .then(function(html) {
+                if (html.indexOf('coaching-pending') === -1) {
+                  window.location.reload();
+                }
+              }).catch(function() {});
+          }, 5000);
+        </script>
       <% end %>
     </div>
 

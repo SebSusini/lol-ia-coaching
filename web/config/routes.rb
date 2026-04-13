@@ -15,11 +15,9 @@ Rails.application.routes.draw do
     end
   end
 
-  # API for workers
+  # API
   namespace :api do
-    resources :reviews, only: [:show, :update]
-    post "workers/heartbeat", to: "workers#heartbeat"
-    post "workers/complete", to: "workers#complete"
+    resources :reviews, only: [:show]
   end
 
   # Health check
