@@ -1,0 +1,1406 @@
+============================================================
+=== packet_dispatch_switch at RVA 0x1446636 ===
+Function: FUN_1414447f0 at 1414447f0
+Size: 19423
+
+/* WARNING: Function: __chkstk replaced with injection: alloca_probe */
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_1414447f0(undefined8 *param_1,undefined8 *param_2,undefined8 param_3,undefined8 *param_4,
+                  char param_5,uint param_6,uint param_7,int *param_8)
+
+{
+  byte bVar1;
+  byte *pbVar2;
+  undefined *puVar3;
+  byte *pbVar4;
+  longlong *plVar5;
+  char cVar6;
+  undefined4 uVar7;
+  undefined4 uVar8;
+  undefined8 *puVar9;
+  undefined8 uVar10;
+  int *piVar11;
+  longlong lVar12;
+  int *piVar13;
+  int *piVar14;
+  undefined8 uVar15;
+  undefined uVar16;
+  int iVar17;
+  int iVar18;
+  int iVar19;
+  int iVar20;
+  undefined4 *puVar21;
+  ushort uVar22;
+  uint uVar23;
+  longlong lVar24;
+  ulonglong uVar25;
+  ulonglong uVar26;
+  ulonglong uVar27;
+  uint uVar28;
+  int iVar29;
+  uint uVar30;
+  int iVar31;
+  undefined8 *puVar32;
+  int *piVar33;
+  uint *puVar34;
+  byte bVar35;
+  undefined8 *puVar36;
+  undefined8 *puVar37;
+  uint uVar38;
+  uint uVar39;
+  uint uVar41;
+  undefined8 *puVar42;
+  longlong lVar43;
+  uint uVar45;
+  uint uVar46;
+  bool bVar48;
+  undefined auStack_6458 [32];
+  char *local_6438;
+  undefined8 local_6430;
+  uint local_6428;
+  int *local_6420;
+  uint local_6418;
+  char local_6414 [4];
+  undefined8 *local_6410;
+  char local_6408;
+  uint local_6404;
+  undefined8 *local_6400;
+  int local_63f8;
+  uint local_63f4;
+  uint local_63f0;
+  uint local_63ec;
+  uint local_63e8;
+  int *local_63e0;
+  undefined8 *local_63d8;
+  uint local_63d0;
+  int local_63cc;
+  int local_63c8;
+  uint local_63c4;
+  uint local_63c0;
+  undefined4 local_63bc;
+  longlong local_63b8;
+  int *local_63b0;
+  undefined8 local_63a8;
+  undefined8 *local_63a0;
+  ulonglong local_6398;
+  undefined8 *local_6390;
+  undefined8 local_6388;
+  undefined8 local_6380;
+  undefined8 local_6378;
+  int *local_6370;
+  undefined8 local_6368;
+  undefined8 local_6360;
+  undefined8 local_6358;
+  longlong local_6350;
+  undefined8 local_6348;
+  undefined8 local_6340;
+  undefined8 local_6338;
+  int *local_6330;
+  undefined8 local_6328;
+  undefined8 local_6320;
+  undefined8 local_6318;
+  longlong local_6310;
+  undefined8 local_6308;
+  undefined8 local_6300;
+  int *local_62f8;
+  undefined8 uStack_62f0;
+  ulonglong local_62e8;
+  ulonglong uStack_62e0;
+  undefined8 local_62d8;
+  undefined8 uStack_62d0;
+  int *local_62c8;
+  undefined8 local_62c0;
+  ulonglong local_62b8;
+  ulonglong local_62b0;
+  undefined8 local_62a8;
+  undefined8 uStack_62a0;
+  undefined8 *local_6298;
+  undefined8 local_6290;
+  undefined8 *local_6288;
+  undefined8 **local_6280;
+  undefined8 *local_6278;
+  char local_6270;
+  undefined local_626f;
+  undefined2 local_626e;
+  undefined4 local_626c;
+  undefined local_6268 [6152];
+  undefined8 *local_4a60;
+  undefined8 **local_4a58;
+  undefined8 *local_4a50;
+  undefined local_4a48;
+  undefined local_4a47;
+  undefined2 local_4a46;
+  undefined4 local_4a44;
+  undefined local_4a40 [6152];
+  undefined8 *local_3238;
+  undefined8 **local_3230;
+  undefined8 *local_3228;
+  undefined local_3220;
+  undefined local_321f;
+  undefined2 local_321e;
+  undefined4 local_321c;
+  undefined local_3218 [6152];
+  undefined8 local_1a10;
+  int *local_1a08;
+  undefined8 local_1a00;
+  undefined8 local_19f8;
+  undefined8 uStack_19f0;
+  undefined8 local_19e8;
+  undefined8 uStack_19e0;
+  undefined8 local_19d8;
+  undefined4 local_19d0;
+  undefined4 local_19cc;
+  undefined4 local_19c8;
+  undefined8 local_19c4;
+  undefined2 local_19bc;
+  undefined local_19ba;
+  undefined local_19b9;
+  undefined8 *local_19b8;
+  undefined8 *local_19b0;
+  int **local_19a8;
+  uint local_19a0;
+  undefined4 local_199c;
+  undefined8 *local_1998;
+  int local_1990;
+  int local_198c;
+  int local_1988;
+  undefined4 local_1984;
+  undefined8 local_1980;
+  undefined8 uStack_1978;
+  undefined8 local_1970;
+  undefined8 uStack_1968;
+  undefined8 local_1960;
+  char local_1958;
+  undefined8 local_1957;
+  undefined8 uStack_194f;
+  undefined8 local_1947;
+  undefined8 uStack_193f;
+  undefined4 local_1937;
+  undefined2 local_1933;
+  undefined local_1931;
+  undefined8 *local_1928;
+  undefined8 **local_1920;
+  undefined8 *local_1918;
+  undefined local_190f;
+  undefined4 local_190c;
+  uint auStack_110 [6];
+  undefined8 local_f8;
+  undefined8 uStack_f0;
+  undefined8 local_e8;
+  undefined4 uStack_dc;
+  undefined8 local_d8;
+  int local_d0;
+  undefined8 local_c8;
+  undefined8 uStack_c0;
+  undefined8 local_b8;
+  undefined8 uStack_b0;
+  undefined8 local_a8;
+  undefined8 uStack_a0;
+  undefined8 local_98;
+  undefined8 uStack_90;
+  undefined8 local_88;
+  undefined8 uStack_80;
+  undefined8 local_78;
+  undefined8 uStack_70;
+  undefined8 local_68;
+  undefined8 uStack_60;
+  undefined8 local_58;
+  undefined8 uStack_50;
+  ulonglong local_48;
+  undefined8 uStack_40;
+  ulonglong uVar40;
+  ulonglong uVar44;
+  ulonglong uVar47;
+  
+  piVar13 = param_8;
+  uStack_40 = 0x141444812;
+  local_48 = DAT_141d45cc0 ^ (ulonglong)auStack_6458;
+  lVar43 = param_1[0x1e];
+  piVar11 = (int *)(param_1 + 1);
+  local_6380 = *param_1;
+  local_63bc = *(undefined4 *)(param_1 + 7);
+  local_63b0 = param_8;
+  local_63f8 = 0;
+  local_63cc = *(int *)(*(longlong *)(lVar43 + 0x328) + 0x224) << 0x10;
+  local_d8 = 0;
+  local_d0 = 0;
+  local_e8 = 0;
+  local_6270 = '\0';
+  local_626e = 0;
+  local_63f0 = 0;
+  local_63d0 = local_63d0 & 0xffffff00;
+  local_6408 = '\0';
+  local_63e8 = 0;
+  local_63c8 = 20000000;
+  local_c8 = 0;
+  uStack_c0 = 0;
+  local_6398 = 0;
+  local_b8 = 0;
+  uStack_b0 = 0;
+  local_a8 = 0;
+  uStack_a0 = 0;
+  local_6328 = 0x14;
+  local_98 = 0;
+  uStack_90 = 0;
+  local_6320 = 0;
+  local_88 = 0;
+  uStack_80 = 0;
+  local_6318 = 10;
+  local_78 = 0;
+  uStack_70 = 0;
+  local_6310 = 0;
+  local_68 = 0;
+  uStack_60 = 0;
+  local_6308 = 0;
+  local_58 = 0;
+  uStack_50 = 0;
+  local_6300 = 0;
+  local_f8 = 0;
+  uStack_f0 = 0;
+  local_6368 = 0x14;
+  local_6360 = 0;
+  local_6358 = 10;
+  local_6350 = 0;
+  local_6348 = 0;
+  local_6340 = 0;
+  uStack_62f0 = 0;
+  local_62e8 = 0;
+  uStack_62e0 = 0;
+  local_62d8 = 0;
+  uStack_62d0 = 0;
+  local_6410 = param_1;
+  local_63e0 = piVar11;
+  local_63b8 = lVar43;
+  local_6390 = param_4;
+  local_6388 = param_3;
+  local_6378 = local_6380;
+  local_6370 = piVar11;
+  local_6338 = local_6380;
+  local_6330 = piVar11;
+  local_62f8 = piVar11;
+  FUN_1418d20f0(local_6268,0,0x1808);
+  local_4a48 = 0;
+  local_4a46 = 0;
+  FUN_1418d20f0(local_4a40,0,0x1808);
+  local_3220 = 0;
+  local_321e = 0;
+  FUN_1418d20f0(local_3218,0);
+  local_199c = 0;
+  local_1980 = 0;
+  uStack_1978 = 0;
+  local_1960 = 0;
+  local_1970 = 0;
+  uStack_1968 = 0;
+  local_1937 = 0;
+  local_19f8 = _DAT_141a4a980;
+  uStack_19f0 = _UNK_141a4a988;
+  local_1933 = 0;
+  local_1931 = 0;
+  local_1a10 = local_6380;
+  local_19d8 = 0;
+  local_19e8 = 0;
+  uStack_19e0 = 0;
+  local_1957 = 0;
+... (3745 total lines)
+
+============================================================
+=== packet_0x1c_handler at RVA 0x1446d4a ===
+Function: FUN_1414447f0 at 1414447f0
+Size: 19423
+
+/* WARNING: Function: __chkstk replaced with injection: alloca_probe */
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_1414447f0(undefined8 *param_1,undefined8 *param_2,undefined8 param_3,undefined8 *param_4,
+                  char param_5,uint param_6,uint param_7,int *param_8)
+
+{
+  byte bVar1;
+  byte *pbVar2;
+  undefined *puVar3;
+  byte *pbVar4;
+  longlong *plVar5;
+  char cVar6;
+  undefined4 uVar7;
+  undefined4 uVar8;
+  undefined8 *puVar9;
+  undefined8 uVar10;
+  int *piVar11;
+  longlong lVar12;
+  int *piVar13;
+  int *piVar14;
+  undefined8 uVar15;
+  undefined uVar16;
+  int iVar17;
+  int iVar18;
+  int iVar19;
+  int iVar20;
+  undefined4 *puVar21;
+  ushort uVar22;
+  uint uVar23;
+  longlong lVar24;
+  ulonglong uVar25;
+  ulonglong uVar26;
+  ulonglong uVar27;
+  uint uVar28;
+  int iVar29;
+  uint uVar30;
+  int iVar31;
+  undefined8 *puVar32;
+  int *piVar33;
+  uint *puVar34;
+  byte bVar35;
+  undefined8 *puVar36;
+  undefined8 *puVar37;
+  uint uVar38;
+  uint uVar39;
+  uint uVar41;
+  undefined8 *puVar42;
+  longlong lVar43;
+  uint uVar45;
+  uint uVar46;
+  bool bVar48;
+  undefined auStack_6458 [32];
+  char *local_6438;
+  undefined8 local_6430;
+  uint local_6428;
+  int *local_6420;
+  uint local_6418;
+  char local_6414 [4];
+  undefined8 *local_6410;
+  char local_6408;
+  uint local_6404;
+  undefined8 *local_6400;
+  int local_63f8;
+  uint local_63f4;
+  uint local_63f0;
+  uint local_63ec;
+  uint local_63e8;
+  int *local_63e0;
+  undefined8 *local_63d8;
+  uint local_63d0;
+  int local_63cc;
+  int local_63c8;
+  uint local_63c4;
+  uint local_63c0;
+  undefined4 local_63bc;
+  longlong local_63b8;
+  int *local_63b0;
+  undefined8 local_63a8;
+  undefined8 *local_63a0;
+  ulonglong local_6398;
+  undefined8 *local_6390;
+  undefined8 local_6388;
+  undefined8 local_6380;
+  undefined8 local_6378;
+  int *local_6370;
+  undefined8 local_6368;
+  undefined8 local_6360;
+  undefined8 local_6358;
+  longlong local_6350;
+  undefined8 local_6348;
+  undefined8 local_6340;
+  undefined8 local_6338;
+  int *local_6330;
+  undefined8 local_6328;
+  undefined8 local_6320;
+  undefined8 local_6318;
+  longlong local_6310;
+  undefined8 local_6308;
+  undefined8 local_6300;
+  int *local_62f8;
+  undefined8 uStack_62f0;
+  ulonglong local_62e8;
+  ulonglong uStack_62e0;
+  undefined8 local_62d8;
+  undefined8 uStack_62d0;
+  int *local_62c8;
+  undefined8 local_62c0;
+  ulonglong local_62b8;
+  ulonglong local_62b0;
+  undefined8 local_62a8;
+  undefined8 uStack_62a0;
+  undefined8 *local_6298;
+  undefined8 local_6290;
+  undefined8 *local_6288;
+  undefined8 **local_6280;
+  undefined8 *local_6278;
+  char local_6270;
+  undefined local_626f;
+  undefined2 local_626e;
+  undefined4 local_626c;
+  undefined local_6268 [6152];
+  undefined8 *local_4a60;
+  undefined8 **local_4a58;
+  undefined8 *local_4a50;
+  undefined local_4a48;
+  undefined local_4a47;
+  undefined2 local_4a46;
+  undefined4 local_4a44;
+  undefined local_4a40 [6152];
+  undefined8 *local_3238;
+  undefined8 **local_3230;
+  undefined8 *local_3228;
+  undefined local_3220;
+  undefined local_321f;
+  undefined2 local_321e;
+  undefined4 local_321c;
+  undefined local_3218 [6152];
+  undefined8 local_1a10;
+  int *local_1a08;
+  undefined8 local_1a00;
+  undefined8 local_19f8;
+  undefined8 uStack_19f0;
+  undefined8 local_19e8;
+  undefined8 uStack_19e0;
+  undefined8 local_19d8;
+  undefined4 local_19d0;
+  undefined4 local_19cc;
+  undefined4 local_19c8;
+  undefined8 local_19c4;
+  undefined2 local_19bc;
+  undefined local_19ba;
+  undefined local_19b9;
+  undefined8 *local_19b8;
+  undefined8 *local_19b0;
+  int **local_19a8;
+  uint local_19a0;
+  undefined4 local_199c;
+  undefined8 *local_1998;
+  int local_1990;
+  int local_198c;
+  int local_1988;
+  undefined4 local_1984;
+  undefined8 local_1980;
+  undefined8 uStack_1978;
+  undefined8 local_1970;
+  undefined8 uStack_1968;
+  undefined8 local_1960;
+  char local_1958;
+  undefined8 local_1957;
+  undefined8 uStack_194f;
+  undefined8 local_1947;
+  undefined8 uStack_193f;
+  undefined4 local_1937;
+  undefined2 local_1933;
+  undefined local_1931;
+  undefined8 *local_1928;
+  undefined8 **local_1920;
+  undefined8 *local_1918;
+  undefined local_190f;
+  undefined4 local_190c;
+  uint auStack_110 [6];
+  undefined8 local_f8;
+  undefined8 uStack_f0;
+  undefined8 local_e8;
+  undefined4 uStack_dc;
+  undefined8 local_d8;
+  int local_d0;
+  undefined8 local_c8;
+  undefined8 uStack_c0;
+  undefined8 local_b8;
+  undefined8 uStack_b0;
+  undefined8 local_a8;
+  undefined8 uStack_a0;
+  undefined8 local_98;
+  undefined8 uStack_90;
+  undefined8 local_88;
+  undefined8 uStack_80;
+  undefined8 local_78;
+  undefined8 uStack_70;
+  undefined8 local_68;
+  undefined8 uStack_60;
+  undefined8 local_58;
+  undefined8 uStack_50;
+  ulonglong local_48;
+  undefined8 uStack_40;
+  ulonglong uVar40;
+  ulonglong uVar44;
+  ulonglong uVar47;
+  
+  piVar13 = param_8;
+  uStack_40 = 0x141444812;
+  local_48 = DAT_141d45cc0 ^ (ulonglong)auStack_6458;
+  lVar43 = param_1[0x1e];
+  piVar11 = (int *)(param_1 + 1);
+  local_6380 = *param_1;
+  local_63bc = *(undefined4 *)(param_1 + 7);
+  local_63b0 = param_8;
+  local_63f8 = 0;
+  local_63cc = *(int *)(*(longlong *)(lVar43 + 0x328) + 0x224) << 0x10;
+  local_d8 = 0;
+  local_d0 = 0;
+  local_e8 = 0;
+  local_6270 = '\0';
+  local_626e = 0;
+  local_63f0 = 0;
+  local_63d0 = local_63d0 & 0xffffff00;
+  local_6408 = '\0';
+  local_63e8 = 0;
+  local_63c8 = 20000000;
+  local_c8 = 0;
+  uStack_c0 = 0;
+  local_6398 = 0;
+  local_b8 = 0;
+  uStack_b0 = 0;
+  local_a8 = 0;
+  uStack_a0 = 0;
+  local_6328 = 0x14;
+  local_98 = 0;
+  uStack_90 = 0;
+  local_6320 = 0;
+  local_88 = 0;
+  uStack_80 = 0;
+  local_6318 = 10;
+  local_78 = 0;
+  uStack_70 = 0;
+  local_6310 = 0;
+  local_68 = 0;
+  uStack_60 = 0;
+  local_6308 = 0;
+  local_58 = 0;
+  uStack_50 = 0;
+  local_6300 = 0;
+  local_f8 = 0;
+  uStack_f0 = 0;
+  local_6368 = 0x14;
+  local_6360 = 0;
+  local_6358 = 10;
+  local_6350 = 0;
+  local_6348 = 0;
+  local_6340 = 0;
+  uStack_62f0 = 0;
+  local_62e8 = 0;
+  uStack_62e0 = 0;
+  local_62d8 = 0;
+  uStack_62d0 = 0;
+  local_6410 = param_1;
+  local_63e0 = piVar11;
+  local_63b8 = lVar43;
+  local_6390 = param_4;
+  local_6388 = param_3;
+  local_6378 = local_6380;
+  local_6370 = piVar11;
+  local_6338 = local_6380;
+  local_6330 = piVar11;
+  local_62f8 = piVar11;
+  FUN_1418d20f0(local_6268,0,0x1808);
+  local_4a48 = 0;
+  local_4a46 = 0;
+  FUN_1418d20f0(local_4a40,0,0x1808);
+  local_3220 = 0;
+  local_321e = 0;
+  FUN_1418d20f0(local_3218,0);
+  local_199c = 0;
+  local_1980 = 0;
+  uStack_1978 = 0;
+  local_1960 = 0;
+  local_1970 = 0;
+  uStack_1968 = 0;
+  local_1937 = 0;
+  local_19f8 = _DAT_141a4a980;
+  uStack_19f0 = _UNK_141a4a988;
+  local_1933 = 0;
+  local_1931 = 0;
+  local_1a10 = local_6380;
+  local_19d8 = 0;
+  local_19e8 = 0;
+  uStack_19e0 = 0;
+  local_1957 = 0;
+... (3745 total lines)
+
+============================================================
+=== packet_default_handler at RVA 0x1446da4 ===
+Function: FUN_1414447f0 at 1414447f0
+Size: 19423
+
+/* WARNING: Function: __chkstk replaced with injection: alloca_probe */
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_1414447f0(undefined8 *param_1,undefined8 *param_2,undefined8 param_3,undefined8 *param_4,
+                  char param_5,uint param_6,uint param_7,int *param_8)
+
+{
+  byte bVar1;
+  byte *pbVar2;
+  undefined *puVar3;
+  byte *pbVar4;
+  longlong *plVar5;
+  char cVar6;
+  undefined4 uVar7;
+  undefined4 uVar8;
+  undefined8 *puVar9;
+  undefined8 uVar10;
+  int *piVar11;
+  longlong lVar12;
+  int *piVar13;
+  int *piVar14;
+  undefined8 uVar15;
+  undefined uVar16;
+  int iVar17;
+  int iVar18;
+  int iVar19;
+  int iVar20;
+  undefined4 *puVar21;
+  ushort uVar22;
+  uint uVar23;
+  longlong lVar24;
+  ulonglong uVar25;
+  ulonglong uVar26;
+  ulonglong uVar27;
+  uint uVar28;
+  int iVar29;
+  uint uVar30;
+  int iVar31;
+  undefined8 *puVar32;
+  int *piVar33;
+  uint *puVar34;
+  byte bVar35;
+  undefined8 *puVar36;
+  undefined8 *puVar37;
+  uint uVar38;
+  uint uVar39;
+  uint uVar41;
+  undefined8 *puVar42;
+  longlong lVar43;
+  uint uVar45;
+  uint uVar46;
+  bool bVar48;
+  undefined auStack_6458 [32];
+  char *local_6438;
+  undefined8 local_6430;
+  uint local_6428;
+  int *local_6420;
+  uint local_6418;
+  char local_6414 [4];
+  undefined8 *local_6410;
+  char local_6408;
+  uint local_6404;
+  undefined8 *local_6400;
+  int local_63f8;
+  uint local_63f4;
+  uint local_63f0;
+  uint local_63ec;
+  uint local_63e8;
+  int *local_63e0;
+  undefined8 *local_63d8;
+  uint local_63d0;
+  int local_63cc;
+  int local_63c8;
+  uint local_63c4;
+  uint local_63c0;
+  undefined4 local_63bc;
+  longlong local_63b8;
+  int *local_63b0;
+  undefined8 local_63a8;
+  undefined8 *local_63a0;
+  ulonglong local_6398;
+  undefined8 *local_6390;
+  undefined8 local_6388;
+  undefined8 local_6380;
+  undefined8 local_6378;
+  int *local_6370;
+  undefined8 local_6368;
+  undefined8 local_6360;
+  undefined8 local_6358;
+  longlong local_6350;
+  undefined8 local_6348;
+  undefined8 local_6340;
+  undefined8 local_6338;
+  int *local_6330;
+  undefined8 local_6328;
+  undefined8 local_6320;
+  undefined8 local_6318;
+  longlong local_6310;
+  undefined8 local_6308;
+  undefined8 local_6300;
+  int *local_62f8;
+  undefined8 uStack_62f0;
+  ulonglong local_62e8;
+  ulonglong uStack_62e0;
+  undefined8 local_62d8;
+  undefined8 uStack_62d0;
+  int *local_62c8;
+  undefined8 local_62c0;
+  ulonglong local_62b8;
+  ulonglong local_62b0;
+  undefined8 local_62a8;
+  undefined8 uStack_62a0;
+  undefined8 *local_6298;
+  undefined8 local_6290;
+  undefined8 *local_6288;
+  undefined8 **local_6280;
+  undefined8 *local_6278;
+  char local_6270;
+  undefined local_626f;
+  undefined2 local_626e;
+  undefined4 local_626c;
+  undefined local_6268 [6152];
+  undefined8 *local_4a60;
+  undefined8 **local_4a58;
+  undefined8 *local_4a50;
+  undefined local_4a48;
+  undefined local_4a47;
+  undefined2 local_4a46;
+  undefined4 local_4a44;
+  undefined local_4a40 [6152];
+  undefined8 *local_3238;
+  undefined8 **local_3230;
+  undefined8 *local_3228;
+  undefined local_3220;
+  undefined local_321f;
+  undefined2 local_321e;
+  undefined4 local_321c;
+  undefined local_3218 [6152];
+  undefined8 local_1a10;
+  int *local_1a08;
+  undefined8 local_1a00;
+  undefined8 local_19f8;
+  undefined8 uStack_19f0;
+  undefined8 local_19e8;
+  undefined8 uStack_19e0;
+  undefined8 local_19d8;
+  undefined4 local_19d0;
+  undefined4 local_19cc;
+  undefined4 local_19c8;
+  undefined8 local_19c4;
+  undefined2 local_19bc;
+  undefined local_19ba;
+  undefined local_19b9;
+  undefined8 *local_19b8;
+  undefined8 *local_19b0;
+  int **local_19a8;
+  uint local_19a0;
+  undefined4 local_199c;
+  undefined8 *local_1998;
+  int local_1990;
+  int local_198c;
+  int local_1988;
+  undefined4 local_1984;
+  undefined8 local_1980;
+  undefined8 uStack_1978;
+  undefined8 local_1970;
+  undefined8 uStack_1968;
+  undefined8 local_1960;
+  char local_1958;
+  undefined8 local_1957;
+  undefined8 uStack_194f;
+  undefined8 local_1947;
+  undefined8 uStack_193f;
+  undefined4 local_1937;
+  undefined2 local_1933;
+  undefined local_1931;
+  undefined8 *local_1928;
+  undefined8 **local_1920;
+  undefined8 *local_1918;
+  undefined local_190f;
+  undefined4 local_190c;
+  uint auStack_110 [6];
+  undefined8 local_f8;
+  undefined8 uStack_f0;
+  undefined8 local_e8;
+  undefined4 uStack_dc;
+  undefined8 local_d8;
+  int local_d0;
+  undefined8 local_c8;
+  undefined8 uStack_c0;
+  undefined8 local_b8;
+  undefined8 uStack_b0;
+  undefined8 local_a8;
+  undefined8 uStack_a0;
+  undefined8 local_98;
+  undefined8 uStack_90;
+  undefined8 local_88;
+  undefined8 uStack_80;
+  undefined8 local_78;
+  undefined8 uStack_70;
+  undefined8 local_68;
+  undefined8 uStack_60;
+  undefined8 local_58;
+  undefined8 uStack_50;
+  ulonglong local_48;
+  undefined8 uStack_40;
+  ulonglong uVar40;
+  ulonglong uVar44;
+  ulonglong uVar47;
+  
+  piVar13 = param_8;
+  uStack_40 = 0x141444812;
+  local_48 = DAT_141d45cc0 ^ (ulonglong)auStack_6458;
+  lVar43 = param_1[0x1e];
+  piVar11 = (int *)(param_1 + 1);
+  local_6380 = *param_1;
+  local_63bc = *(undefined4 *)(param_1 + 7);
+  local_63b0 = param_8;
+  local_63f8 = 0;
+  local_63cc = *(int *)(*(longlong *)(lVar43 + 0x328) + 0x224) << 0x10;
+  local_d8 = 0;
+  local_d0 = 0;
+  local_e8 = 0;
+  local_6270 = '\0';
+  local_626e = 0;
+  local_63f0 = 0;
+  local_63d0 = local_63d0 & 0xffffff00;
+  local_6408 = '\0';
+  local_63e8 = 0;
+  local_63c8 = 20000000;
+  local_c8 = 0;
+  uStack_c0 = 0;
+  local_6398 = 0;
+  local_b8 = 0;
+  uStack_b0 = 0;
+  local_a8 = 0;
+  uStack_a0 = 0;
+  local_6328 = 0x14;
+  local_98 = 0;
+  uStack_90 = 0;
+  local_6320 = 0;
+  local_88 = 0;
+  uStack_80 = 0;
+  local_6318 = 10;
+  local_78 = 0;
+  uStack_70 = 0;
+  local_6310 = 0;
+  local_68 = 0;
+  uStack_60 = 0;
+  local_6308 = 0;
+  local_58 = 0;
+  uStack_50 = 0;
+  local_6300 = 0;
+  local_f8 = 0;
+  uStack_f0 = 0;
+  local_6368 = 0x14;
+  local_6360 = 0;
+  local_6358 = 10;
+  local_6350 = 0;
+  local_6348 = 0;
+  local_6340 = 0;
+  uStack_62f0 = 0;
+  local_62e8 = 0;
+  uStack_62e0 = 0;
+  local_62d8 = 0;
+  uStack_62d0 = 0;
+  local_6410 = param_1;
+  local_63e0 = piVar11;
+  local_63b8 = lVar43;
+  local_6390 = param_4;
+  local_6388 = param_3;
+  local_6378 = local_6380;
+  local_6370 = piVar11;
+  local_6338 = local_6380;
+  local_6330 = piVar11;
+  local_62f8 = piVar11;
+  FUN_1418d20f0(local_6268,0,0x1808);
+  local_4a48 = 0;
+  local_4a46 = 0;
+  FUN_1418d20f0(local_4a40,0,0x1808);
+  local_3220 = 0;
+  local_321e = 0;
+  FUN_1418d20f0(local_3218,0);
+  local_199c = 0;
+  local_1980 = 0;
+  uStack_1978 = 0;
+  local_1960 = 0;
+  local_1970 = 0;
+  uStack_1968 = 0;
+  local_1937 = 0;
+  local_19f8 = _DAT_141a4a980;
+  uStack_19f0 = _UNK_141a4a988;
+  local_1933 = 0;
+  local_1931 = 0;
+  local_1a10 = local_6380;
+  local_19d8 = 0;
+  local_19e8 = 0;
+  uStack_19e0 = 0;
+  local_1957 = 0;
+... (3745 total lines)
+
+============================================================
+=== stack_reader at RVA 0x14495f0 ===
+Function: FUN_1414495f0 at 1414495f0
+Size: 76
+
+int FUN_1414495f0(longlong param_1)
+
+{
+  longlong lVar1;
+  int *piVar2;
+  int iVar3;
+  
+  lVar1 = *(longlong *)(param_1 + 0x18);
+  if (lVar1 == *(longlong *)(param_1 + 0x10)) {
+    piVar2 = *(int **)(param_1 + 8);
+    if ((piVar2 != (int *)0x0) && (*piVar2 == 0)) {
+      *piVar2 = 0xa1;
+    }
+    return 0;
+  }
+  *(int **)(param_1 + 0x18) = (int *)(lVar1 + -8);
+  iVar3 = *(int *)(lVar1 + -8);
+  if (*(int *)(lVar1 + -4) == 1) {
+    iVar3 = iVar3 + (iVar3 >> 0x1f) + 0x2000 >> 0xe;
+  }
+  else if (*(int *)(lVar1 + -4) == 2) {
+    return iVar3 << 0x10;
+  }
+  return iVar3;
+}
+
+============================================================
+=== stack_builder at RVA 0x14425b0 ===
+Function: FUN_1414425b0 at 1414425b0
+Size: 619
+
+void FUN_1414425b0(longlong param_1,longlong param_2,longlong param_3,int *param_4,char *param_5,
+                  int param_6)
+
+{
+  int *piVar1;
+  char cVar2;
+  longlong lVar3;
+  int iVar4;
+  longlong lVar5;
+  uint uVar6;
+  uint uVar7;
+  byte bVar8;
+  uint uVar9;
+  ulonglong uVar10;
+  undefined local_48 [4];
+  int local_44;
+  int local_40;
+  undefined8 local_3c;
+  
+  piVar1 = *(int **)(param_2 + 0x10);
+  uVar10 = *(longlong *)(param_2 + 0x18) - (longlong)piVar1 >> 3;
+  bVar8 = (byte)uVar10 & 1;
+  uVar9 = (uint)uVar10;
+  if (((*(char *)(param_1 + 0xc) == '\0') && ((uVar10 & 1) != 0)) && (*param_5 == '\0')) {
+    if (uVar9 == 0) {
+      piVar1 = *(int **)(param_2 + 8);
+      if ((piVar1 != (int *)0x0) && (*piVar1 == 0)) {
+        *piVar1 = 0x82;
+      }
+      iVar4 = 0;
+    }
+    else {
+      iVar4 = *piVar1;
+      if (piVar1[1] == 1) {
+        iVar4 = iVar4 + (iVar4 >> 0x1f) + 0x2000 >> 0xe;
+      }
+      else if (piVar1[1] == 2) {
+        iVar4 = iVar4 << 0x10;
+      }
+    }
+    *param_4 = *(int *)(*(longlong *)(*(longlong *)(param_1 + 0xf0) + 0x328) + 0x224) * 0x10000 +
+               iVar4;
+  }
+  if (*(char *)(*(longlong *)(param_1 + 0xf0) + 0x340) == '\0') {
+    uVar10 = (ulonglong)bVar8;
+    if (bVar8 < uVar9) {
+      uVar6 = bVar8 + 1;
+      do {
+        lVar3 = *(longlong *)(param_2 + 0x18);
+        lVar5 = *(longlong *)(param_2 + 0x10);
+        if ((uint)uVar10 < (uint)(lVar3 - lVar5 >> 3)) {
+          iVar4 = *(int *)(lVar5 + 4 + uVar10 * 8);
+          piVar1 = (int *)(lVar5 + uVar10 * 8);
+          if (iVar4 == 1) {
+            iVar4 = *piVar1;
+            local_44 = iVar4 + (iVar4 >> 0x1f) + 0x2000 >> 0xe;
+          }
+          else {
+            local_44 = *piVar1;
+            if (iVar4 == 2) {
+              local_44 = local_44 << 0x10;
+            }
+          }
+        }
+        else {
+          piVar1 = *(int **)(param_2 + 8);
+          if ((piVar1 != (int *)0x0) && (*piVar1 == 0)) {
+            *piVar1 = 0x82;
+            lVar5 = *(longlong *)(param_2 + 0x10);
+            lVar3 = *(longlong *)(param_2 + 0x18);
+          }
+          local_44 = 0;
+        }
+        local_44 = param_6 + local_44;
+        if (uVar6 < (uint)(lVar3 - lVar5 >> 3)) {
+          iVar4 = *(int *)(lVar5 + 4 + (ulonglong)uVar6 * 8);
+          param_6 = *(int *)(lVar5 + (ulonglong)uVar6 * 8);
+          if (iVar4 == 1) {
+            param_6 = param_6 + (param_6 >> 0x1f) + 0x2000 >> 0xe;
+          }
+          else if (iVar4 == 2) {
+            param_6 = param_6 << 0x10;
+          }
+        }
+        else {
+          piVar1 = *(int **)(param_2 + 8);
+          if ((piVar1 != (int *)0x0) && (*piVar1 == 0)) {
+            *piVar1 = 0x82;
+          }
+          param_6 = 0;
+        }
+        param_6 = local_44 + param_6;
+        local_48[0] = 0;
+        local_3c = 0;
+        local_40 = param_6;
+        if ((*(longlong *)(param_3 + 0x28) != *(longlong *)(param_3 + 0x18)) ||
+           (cVar2 = FUN_141441640(param_3,*(longlong *)(param_3 + 0x20) +
+                                          *(longlong *)(param_3 + 0x18)), cVar2 != '\0')) {
+          FUN_1418d1a50(*(longlong *)(param_3 + 0x10) * *(longlong *)(param_3 + 0x28) +
+                        *(longlong *)(param_3 + 0x38),local_48);
+          *(longlong *)(param_3 + 0x28) = *(longlong *)(param_3 + 0x28) + 1;
+        }
+        uVar7 = (uint)uVar10 + 2;
+        uVar10 = (ulonglong)uVar7;
+        uVar6 = uVar6 + 2;
+      } while (uVar7 < uVar9);
+    }
+    *(undefined8 *)(param_2 + 0x18) = *(undefined8 *)(param_2 + 0x10);
+    *param_5 = '\x01';
+  }
+  else {
+    *param_5 = '\x01';
+  }
+  return;
+}
+
+============================================================
+=== type_byte_reader at RVA 0x1444dbd ===
+Function: FUN_1414447f0 at 1414447f0
+Size: 19423
+
+/* WARNING: Function: __chkstk replaced with injection: alloca_probe */
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_1414447f0(undefined8 *param_1,undefined8 *param_2,undefined8 param_3,undefined8 *param_4,
+                  char param_5,uint param_6,uint param_7,int *param_8)
+
+{
+  byte bVar1;
+  byte *pbVar2;
+  undefined *puVar3;
+  byte *pbVar4;
+  longlong *plVar5;
+  char cVar6;
+  undefined4 uVar7;
+  undefined4 uVar8;
+  undefined8 *puVar9;
+  undefined8 uVar10;
+  int *piVar11;
+  longlong lVar12;
+  int *piVar13;
+  int *piVar14;
+  undefined8 uVar15;
+  undefined uVar16;
+  int iVar17;
+  int iVar18;
+  int iVar19;
+  int iVar20;
+  undefined4 *puVar21;
+  ushort uVar22;
+  uint uVar23;
+  longlong lVar24;
+  ulonglong uVar25;
+  ulonglong uVar26;
+  ulonglong uVar27;
+  uint uVar28;
+  int iVar29;
+  uint uVar30;
+  int iVar31;
+  undefined8 *puVar32;
+  int *piVar33;
+  uint *puVar34;
+  byte bVar35;
+  undefined8 *puVar36;
+  undefined8 *puVar37;
+  uint uVar38;
+  uint uVar39;
+  uint uVar41;
+  undefined8 *puVar42;
+  longlong lVar43;
+  uint uVar45;
+  uint uVar46;
+  bool bVar48;
+  undefined auStack_6458 [32];
+  char *local_6438;
+  undefined8 local_6430;
+  uint local_6428;
+  int *local_6420;
+  uint local_6418;
+  char local_6414 [4];
+  undefined8 *local_6410;
+  char local_6408;
+  uint local_6404;
+  undefined8 *local_6400;
+  int local_63f8;
+  uint local_63f4;
+  uint local_63f0;
+  uint local_63ec;
+  uint local_63e8;
+  int *local_63e0;
+  undefined8 *local_63d8;
+  uint local_63d0;
+  int local_63cc;
+  int local_63c8;
+  uint local_63c4;
+  uint local_63c0;
+  undefined4 local_63bc;
+  longlong local_63b8;
+  int *local_63b0;
+  undefined8 local_63a8;
+  undefined8 *local_63a0;
+  ulonglong local_6398;
+  undefined8 *local_6390;
+  undefined8 local_6388;
+  undefined8 local_6380;
+  undefined8 local_6378;
+  int *local_6370;
+  undefined8 local_6368;
+  undefined8 local_6360;
+  undefined8 local_6358;
+  longlong local_6350;
+  undefined8 local_6348;
+  undefined8 local_6340;
+  undefined8 local_6338;
+  int *local_6330;
+  undefined8 local_6328;
+  undefined8 local_6320;
+  undefined8 local_6318;
+  longlong local_6310;
+  undefined8 local_6308;
+  undefined8 local_6300;
+  int *local_62f8;
+  undefined8 uStack_62f0;
+  ulonglong local_62e8;
+  ulonglong uStack_62e0;
+  undefined8 local_62d8;
+  undefined8 uStack_62d0;
+  int *local_62c8;
+  undefined8 local_62c0;
+  ulonglong local_62b8;
+  ulonglong local_62b0;
+  undefined8 local_62a8;
+  undefined8 uStack_62a0;
+  undefined8 *local_6298;
+  undefined8 local_6290;
+  undefined8 *local_6288;
+  undefined8 **local_6280;
+  undefined8 *local_6278;
+  char local_6270;
+  undefined local_626f;
+  undefined2 local_626e;
+  undefined4 local_626c;
+  undefined local_6268 [6152];
+  undefined8 *local_4a60;
+  undefined8 **local_4a58;
+  undefined8 *local_4a50;
+  undefined local_4a48;
+  undefined local_4a47;
+  undefined2 local_4a46;
+  undefined4 local_4a44;
+  undefined local_4a40 [6152];
+  undefined8 *local_3238;
+  undefined8 **local_3230;
+  undefined8 *local_3228;
+  undefined local_3220;
+  undefined local_321f;
+  undefined2 local_321e;
+  undefined4 local_321c;
+  undefined local_3218 [6152];
+  undefined8 local_1a10;
+  int *local_1a08;
+  undefined8 local_1a00;
+  undefined8 local_19f8;
+  undefined8 uStack_19f0;
+  undefined8 local_19e8;
+  undefined8 uStack_19e0;
+  undefined8 local_19d8;
+  undefined4 local_19d0;
+  undefined4 local_19cc;
+  undefined4 local_19c8;
+  undefined8 local_19c4;
+  undefined2 local_19bc;
+  undefined local_19ba;
+  undefined local_19b9;
+  undefined8 *local_19b8;
+  undefined8 *local_19b0;
+  int **local_19a8;
+  uint local_19a0;
+  undefined4 local_199c;
+  undefined8 *local_1998;
+  int local_1990;
+  int local_198c;
+  int local_1988;
+  undefined4 local_1984;
+  undefined8 local_1980;
+  undefined8 uStack_1978;
+  undefined8 local_1970;
+  undefined8 uStack_1968;
+  undefined8 local_1960;
+  char local_1958;
+  undefined8 local_1957;
+  undefined8 uStack_194f;
+  undefined8 local_1947;
+  undefined8 uStack_193f;
+  undefined4 local_1937;
+  undefined2 local_1933;
+  undefined local_1931;
+  undefined8 *local_1928;
+  undefined8 **local_1920;
+  undefined8 *local_1918;
+  undefined local_190f;
+  undefined4 local_190c;
+  uint auStack_110 [6];
+  undefined8 local_f8;
+  undefined8 uStack_f0;
+  undefined8 local_e8;
+  undefined4 uStack_dc;
+  undefined8 local_d8;
+  int local_d0;
+  undefined8 local_c8;
+  undefined8 uStack_c0;
+  undefined8 local_b8;
+  undefined8 uStack_b0;
+  undefined8 local_a8;
+  undefined8 uStack_a0;
+  undefined8 local_98;
+  undefined8 uStack_90;
+  undefined8 local_88;
+  undefined8 uStack_80;
+  undefined8 local_78;
+  undefined8 uStack_70;
+  undefined8 local_68;
+  undefined8 uStack_60;
+  undefined8 local_58;
+  undefined8 uStack_50;
+  ulonglong local_48;
+  undefined8 uStack_40;
+  ulonglong uVar40;
+  ulonglong uVar44;
+  ulonglong uVar47;
+  
+  piVar13 = param_8;
+  uStack_40 = 0x141444812;
+  local_48 = DAT_141d45cc0 ^ (ulonglong)auStack_6458;
+  lVar43 = param_1[0x1e];
+  piVar11 = (int *)(param_1 + 1);
+  local_6380 = *param_1;
+  local_63bc = *(undefined4 *)(param_1 + 7);
+  local_63b0 = param_8;
+  local_63f8 = 0;
+  local_63cc = *(int *)(*(longlong *)(lVar43 + 0x328) + 0x224) << 0x10;
+  local_d8 = 0;
+  local_d0 = 0;
+  local_e8 = 0;
+  local_6270 = '\0';
+  local_626e = 0;
+  local_63f0 = 0;
+  local_63d0 = local_63d0 & 0xffffff00;
+  local_6408 = '\0';
+  local_63e8 = 0;
+  local_63c8 = 20000000;
+  local_c8 = 0;
+  uStack_c0 = 0;
+  local_6398 = 0;
+  local_b8 = 0;
+  uStack_b0 = 0;
+  local_a8 = 0;
+  uStack_a0 = 0;
+  local_6328 = 0x14;
+  local_98 = 0;
+  uStack_90 = 0;
+  local_6320 = 0;
+  local_88 = 0;
+  uStack_80 = 0;
+  local_6318 = 10;
+  local_78 = 0;
+  uStack_70 = 0;
+  local_6310 = 0;
+  local_68 = 0;
+  uStack_60 = 0;
+  local_6308 = 0;
+  local_58 = 0;
+  uStack_50 = 0;
+  local_6300 = 0;
+  local_f8 = 0;
+  uStack_f0 = 0;
+  local_6368 = 0x14;
+  local_6360 = 0;
+  local_6358 = 10;
+  local_6350 = 0;
+  local_6348 = 0;
+  local_6340 = 0;
+  uStack_62f0 = 0;
+  local_62e8 = 0;
+  uStack_62e0 = 0;
+  local_62d8 = 0;
+  uStack_62d0 = 0;
+  local_6410 = param_1;
+  local_63e0 = piVar11;
+  local_63b8 = lVar43;
+  local_6390 = param_4;
+  local_6388 = param_3;
+  local_6378 = local_6380;
+  local_6370 = piVar11;
+  local_6338 = local_6380;
+  local_6330 = piVar11;
+  local_62f8 = piVar11;
+  FUN_1418d20f0(local_6268,0,0x1808);
+  local_4a48 = 0;
+  local_4a46 = 0;
+  FUN_1418d20f0(local_4a40,0,0x1808);
+  local_3220 = 0;
+  local_321e = 0;
+  FUN_1418d20f0(local_3218,0);
+  local_199c = 0;
+  local_1980 = 0;
+  uStack_1978 = 0;
+  local_1960 = 0;
+  local_1970 = 0;
+  uStack_1968 = 0;
+  local_1937 = 0;
+  local_19f8 = _DAT_141a4a980;
+  uStack_19f0 = _UNK_141a4a988;
+  local_1933 = 0;
+  local_1931 = 0;
+  local_1a10 = local_6380;
+  local_19d8 = 0;
+  local_19e8 = 0;
+  uStack_19e0 = 0;
+  local_1957 = 0;
+... (3745 total lines)
+
+============================================================
+=== payload_decoder at RVA 0x140b680 ===
+Function: FUN_14140b680 at 14140b680
+Size: 111
+
+longlong FUN_14140b680(longlong param_1,int param_2,undefined4 *param_3)
+
+{
+  longlong lVar1;
+  undefined4 uVar2;
+  
+  lVar1 = 0;
+  if (param_2 < 1) {
+    uVar2 = 0;
+    if (param_2 < 0) {
+      uVar2 = 6;
+    }
+  }
+  else {
+    lVar1 = (**(code **)(param_1 + 8))(param_1,param_2);
+    uVar2 = 0x40;
+    if (lVar1 != 0) {
+      FUN_1418d20f0(lVar1,0,(longlong)param_2);
+      uVar2 = 0;
+    }
+  }
+  *param_3 = uVar2;
+  return lVar1;
+}
+
