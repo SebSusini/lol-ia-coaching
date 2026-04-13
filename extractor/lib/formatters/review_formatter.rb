@@ -31,6 +31,7 @@ class ReviewFormatter
     my_team_id = my_participant&.dig("teamId")
 
     {
+      match_id: @context.match_id,
       champion: @context.my_champion,
       role: my_participant&.dig("teamPosition"),
       enemy_laner: {

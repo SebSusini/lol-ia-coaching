@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby
+# Shows progression stats across all tracked games
+# Usage: bin/progress [--last N] [--champion NAME] [--json]
+
+$LOAD_PATH.unshift(File.join(__dir__, "..", "extractor", "lib"))
+require "optparse"
+require "json"
+require "progression_tracker"
+
+options = { last: nil, champion: nil, json: false }
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: bin/progress [options]"
+  opts.on("--last N", Integer, "Show only last N games") { |v| options[:last] = v }
+  opts.on("--champion NAME", "Filter by champion") { |v| options[:champion] = v }
+  opts.on("--json", "Output raw JSON") { |v| options[:json] = true }
+  opts.on("--import FILE", "Import a review JSON into progression") { |v| options[:import] = v }
+end.parse!
+
+tracker = ProgressionTracker.new
+
+# Import mode
+if options[:import]
+  review = JSON.parse(File.read(options[:import]))
+
+  # Try to extract match_id from filename if not in the review
+  meta = review["meta"] || {}
+  unless meta["match_id"]
+    filename = File.basename(options[:import])
+    if filename =~ /(EUW1_\d+)/
+      meta["match_id"] = $1
+      review["meta"] = meta
+    end
+  end
+
+  entry = tracker.record(review)
+  if entry
+    puts "Imported: #{entry['champion']} #{entry['role']} — #{entry['kda']} (#{entry['result']})"
+  else
+    puts "Already tracked or invalid review."
+  end
+  exit 0
+end
+
+if tracker.entries.empty?
+  puts "No games tracked yet."
+  puts ""
+  puts "To start tracking:"
+  puts "  1. Import existing reviews:"
+  puts "     bin/progress --import output/EUW1_XXXX_review_v4.json"
+  puts ""
+  puts "  2. Or run bin/quick-review — progression is recorded automatically."
+  exit 0
+end
+
+if options[:json]
+  puts JSON.pretty_generate(tracker.progression_summary)
+else
+  puts tracker.format_report
+end

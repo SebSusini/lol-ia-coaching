@@ -2,6 +2,7 @@ require "json"
 
 require_relative "game_context"
 require_relative "item_resolver"
+require_relative "progression_tracker"
 require_relative "filters/mid_lane_filter"
 require_relative "detectors/death_detector"
 require_relative "detectors/death_position_classifier"
@@ -89,7 +90,20 @@ class Extractor
     timeline_events.sort_by! { |e| e[:time_seconds] }
 
     # Format output
-    ReviewFormatter.new(context, timeline_events, @item_resolver, my_positions).format
+    result = ReviewFormatter.new(context, timeline_events, @item_resolver, my_positions).format
+
+    # Record progression and attach summary
+    begin
+      tracker = ProgressionTracker.new
+      tracker.record(result)
+      summary = tracker.progression_summary
+      result[:progression] = summary if summary
+    rescue => e
+      # Don't let progression tracking break the extraction
+      $stderr.puts "Warning: progression tracking failed: #{e.message}" if ENV["DEBUG"]
+    end
+
+    result
   end
 
   private

@@ -1,7 +1,8 @@
 class GameContext
   attr_reader :positions_data, :timeline_data, :summoner_name,
               :my_champion, :enemy_mid_champion, :my_team,
-              :match_info, :participants, :my_participant_id
+              :match_info, :participants, :my_participant_id,
+              :match_id
 
   def initialize(positions_data, timeline_data, summoner_name)
     @positions_data = positions_data
@@ -10,6 +11,7 @@ class GameContext
 
     @match_info = timeline_data["match_info"]
     @participants = @match_info["info"]["participants"]
+    @match_id = @match_info.dig("metadata", "matchId")
 
     resolve_player_info
   end

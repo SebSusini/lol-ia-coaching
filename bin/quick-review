@@ -10,6 +10,17 @@ if [ -f .env ]; then
 fi
 
 SUMMONER="${RIOT_SUMMONER_NAME:-}"
+SHOW_PROGRESSION=false
+GENERATE_HTML=false
+
+# Parse flags
+for arg in "$@"; do
+    case "$arg" in
+        --progression) SHOW_PROGRESSION=true ;;
+        --html) GENERATE_HTML=true ;;
+    esac
+done
+
 if [ -z "$SUMMONER" ]; then
     echo "Erreur: RIOT_SUMMONER_NAME non configure dans .env"
     echo "Lance d'abord: bin/setup"
@@ -115,11 +126,40 @@ else
     puts 'Review JSON: #{(File.size('$REVIEW_FILE') / 1024.0).round(1)} KB'
     "
 
+    # Generate HTML visualization if --html flag is set
+    if [ "$GENERATE_HTML" = true ]; then
+        VISUAL_FILE="output/${MATCH_ID}_visual.html"
+        echo "  Generating HTML visualization..."
+        ruby -r dotenv/load -e "
+        require_relative 'extractor/lib/visualizer'
+        v = Visualizer.new('$REVIEW_FILE')
+        v.save('$VISUAL_FILE')
+        puts \"  HTML: $VISUAL_FILE\"
+        "
+    fi
+
     echo ""
     echo "========================================="
     echo "  Review prete !"
     echo "========================================="
     echo ""
+
+    if [ "$GENERATE_HTML" = true ]; then
+        echo "  Minimap visualization: output/${MATCH_ID}_visual.html"
+        echo ""
+    fi
+
+    if [ "$SHOW_PROGRESSION" = true ]; then
+        echo ""
+        ruby -e "
+        \$LOAD_PATH.unshift(File.join('$SCRIPT_DIR', 'extractor', 'lib'))
+        require 'progression_tracker'
+        tracker = ProgressionTracker.new
+        puts tracker.format_report
+        "
+        echo ""
+    fi
+
     echo "  Option 1 — Claude Code (gratuit) :"
     echo "  Ouvre Claude Code et dis :"
     echo "  \"Lis prompts/review.md puis analyse $REVIEW_FILE\""
@@ -127,5 +167,8 @@ else
     echo "  Option 2 — API automatique :"
     echo "  ruby extractor/bin/review-auto --timeline $TIMELINE_FILE --provider claude"
     echo "  (ou --provider openai / gemini / ollama)"
+    echo ""
+    echo "  Option 3 — Progression :"
+    echo "  bin/progress"
     echo ""
 fi

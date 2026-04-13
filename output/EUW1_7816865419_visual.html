@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sylas Game Review — LoL IA Coaching</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-dim: #8b949e;
+      --gold: #f1c40f;
+      --blue: #4aa3df;
+      --red: #e74c3c;
+      --green: #2ecc71;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 { font-size: 1.5em; margin-bottom: 10px; color: #fff; }
+    h2 { font-size: 1.3em; margin-bottom: 12px; color: var(--gold); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    h3 { font-size: 1em; margin-bottom: 8px; color: var(--text-dim); }
+
+    .header-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .game-result {
+      display: inline-block;
+      font-size: 1.2em;
+      font-weight: bold;
+      padding: 4px 20px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .result-win { background: var(--green); color: #000; }
+    .result-loss { background: var(--red); color: #fff; }
+
+    .stats-row {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 12px 0;
+    }
+    .stat { color: var(--text-dim); font-size: 0.95em; }
+    .stat strong { color: var(--text); }
+
+    .teams-row {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .team-box {
+      flex: 1;
+      max-width: 400px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      text-align: left;
+    }
+    .blue-team-box { border-left: 3px solid var(--blue); }
+    .red-team-box { border-left: 3px solid var(--red); }
+    .teammate, .enemy-player {
+      display: block;
+      font-size: 0.85em;
+      padding: 2px 0;
+      color: var(--text-dim);
+    }
+
+    .event-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .event-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .event-time {
+      font-family: 'SF Mono', 'Menlo', monospace;
+      font-size: 1.1em;
+      color: var(--gold);
+      font-weight: bold;
+    }
+
+    .event-type {
+      font-size: 0.85em;
+      font-weight: bold;
+      padding: 3px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .death-badge { background: var(--red); color: #fff; }
+    .tf-won { background: var(--green); color: #000; }
+    .tf-lost { background: var(--red); color: #fff; }
+
+    .event-body {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .event-details {
+      flex: 1;
+      min-width: 250px;
+    }
+    .event-details p {
+      margin-bottom: 6px;
+      font-size: 0.9em;
+    }
+    .event-desc {
+      font-size: 0.88em;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .minimap-container {
+      flex-shrink: 0;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #000;
+    }
+    .minimap-container.small-map { }
+
+    .minimap-svg { display: block; }
+    .minimap-svg circle, .minimap-svg rect { cursor: pointer; }
+    .minimap-svg circle:hover, .minimap-svg rect:hover { filter: brightness(1.4); }
+
+    .chart-container {
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+    }
+
+    .kill-feed {
+      margin-top: 8px;
+      font-size: 0.85em;
+    }
+    .kill-entry {
+      padding: 2px 8px;
+      border-radius: 3px;
+      margin-bottom: 2px;
+    }
+    .kill-ally { background: rgba(74, 163, 223, 0.15); color: var(--blue); }
+    .kill-enemy { background: rgba(231, 76, 60, 0.15); color: var(--red); }
+
+    .legend {
+      margin-top: 10px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.8em;
+      color: var(--text-dim);
+    }
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .gold-dot { background: var(--gold); }
+    .blue-dot { background: var(--blue); }
+    .red-dot { background: var(--red); }
+
+    .obj-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85em;
+    }
+    .obj-table th {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 0.85em;
+    }
+    .obj-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .obj-yours td:nth-child(3) { color: var(--blue); }
+    .obj-enemy td:nth-child(3) { color: var(--red); }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-dim);
+      font-size: 0.8em;
+    }
+
+    @media (max-width: 700px) {
+      .event-body { flex-direction: column; }
+      .minimap-container { align-self: center; }
+    }
+  </style>
+</head>
+<body>
+  <section class="header-section">
+  <div class="game-result result-loss">LOSS</div>
+  <h1>Sylas vs Mel — Red Side</h1>
+  <div class="stats-row">
+    <span class="stat">KDA: <strong>5/7/5</strong></span>
+    <span class="stat">CS: <strong>157</strong></span>
+    <span class="stat">Duration: <strong>27.8 min</strong></span>
+    <span class="stat">Deaths: <strong>7</strong></span>
+    <span class="stat">Vision: <strong>poor</strong></span>
+  </div>
+  <div class="teams-row">
+    <div class="team-box blue-team-box">
+      <h3>Enemy Team</h3>
+      <span class='enemy-player'>Trundle (TOP) 5/10/4</span><span class='enemy-player'>JarvanIV (JUNGLE) 6/2/10</span><span class='enemy-player'>Mel (MIDDLE) 10/6/1</span><span class='enemy-player'>Veigar (BOTTOM) 4/2/3</span><span class='enemy-player'>Bard (UTILITY) 1/2/8</span>
+    </div>
+    <div class="team-box red-team-box">
+      <h3>Your Team</h3>
+      <span class='teammate'>Fiora (TOP) 9/7/1</span><span class='teammate'>Gwen (JUNGLE) 6/5/4</span><span class='teammate'>Smolder (BOTTOM) 2/2/5</span><span class='teammate'>Leona (UTILITY) 0/5/8</span>
+    </div>
+  </div>
+</section>
+
+<section class="event-section">
+  <h2>Gold Curve</h2>
+  <div class="chart-container">
+    <svg width="540" height="320" viewBox="-20 -10 540 320">
+      <rect x="0" y="0" width="500" height="200" fill="#1a1a2e" rx="4"/>
+      <polyline points="0.0,163.7 125.0,137.8 250.0,114.7 375.0,54.0 500.0,3.0" fill="none" stroke="#f1c40f" stroke-width="2.5"/>
+      <polyline points="0.0,155.6 125.0,116.5 250.0,60.8 375.0,30.8 500.0,0.0" fill="none" stroke="#e74c3c" stroke-width="2.5"/>
+      <circle cx='0.0' cy='163.7' r='4' fill='#f1c40f'><title>You: 1830g</title></circle><circle cx='0.0' cy='155.6' r='4' fill='#e74c3c'><title>Enemy: 2243g</title></circle>
+<circle cx='125.0' cy='137.8' r='4' fill='#f1c40f'><title>You: 3140g</title></circle><circle cx='125.0' cy='116.5' r='4' fill='#e74c3c'><title>Enemy: 4214g</title></circle>
+<circle cx='250.0' cy='114.7' r='4' fill='#f1c40f'><title>You: 4308g</title></circle><circle cx='250.0' cy='60.8' r='4' fill='#e74c3c'><title>Enemy: 7028g</title></circle>
+<circle cx='375.0' cy='54.0' r='4' fill='#f1c40f'><title>You: 7368g</title></circle><circle cx='375.0' cy='30.8' r='4' fill='#e74c3c'><title>Enemy: 8541g</title></circle>
+<circle cx='500.0' cy='3.0' r='4' fill='#f1c40f'><title>You: 9945g</title></circle><circle cx='500.0' cy='0.0' r='4' fill='#e74c3c'><title>Enemy: 10096g</title></circle>
+      <g><title>5min: -413g</title><rect x='-15.0' y='230' width='30' height='3.3' fill='#e74c3c' opacity='0.7' transform=''/>
+      <text x='0.0' y='225' text-anchor='middle' fill='#888' font-size='10'>5m</text></g>
+<g><title>10min: -1074g</title><rect x='110.0' y='230' width='30' height='8.5' fill='#e74c3c' opacity='0.7' transform=''/>
+      <text x='125.0' y='225' text-anchor='middle' fill='#888' font-size='10'>10m</text></g>
+<g><title>15min: -2720g</title><rect x='235.0' y='230' width='30' height='21.6' fill='#e74c3c' opacity='0.7' transform=''/>
+      <text x='250.0' y='225' text-anchor='middle' fill='#888' font-size='10'>15m</text></g>
+<g><title>20min: -1173g</title><rect x='360.0' y='230' width='30' height='9.3' fill='#e74c3c' opacity='0.7' transform=''/>
+      <text x='375.0' y='225' text-anchor='middle' fill='#888' font-size='10'>20m</text></g>
+<g><title>25min: -151g</title><rect x='485.0' y='230' width='30' height='2' fill='#e74c3c' opacity='0.7' transform=''/>
+      <text x='500.0' y='225' text-anchor='middle' fill='#888' font-size='10'>25m</text></g>
+      <text x="505" y="15" fill="#f1c40f" font-size="11">You</text>
+      <text x="505" y="30" fill="#e74c3c" font-size="11">Enemy</text>
+    </svg>
+  </div>
+</section>
+
+<section class="event-section">
+  <h2>Position Trail (per minute)</h2>
+  <p class="event-desc">Gold dot = your position each minute. Line shows your movement path through the game.</p>
+  <div class="minimap-container">
+    <svg width="512" height="512" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='trail-dot' data-minute='0.0'><circle cx='488.8' cy='11.2' r='6' fill='#f1c40f' opacity='0.3' stroke='#fff' stroke-width='0.5'/><title>0:00 — BASE</title></g>
+<g class='trail-dot' data-minute='1.0'><circle cx='269.4' cy='259.9' r='5' fill='#f1c40f' opacity='0.33' stroke='#fff' stroke-width='0.5'/><title>1:00 — MID</title></g>
+<g class='trail-dot' data-minute='2.0'><circle cx='271.7' cy='250.1' r='5' fill='#f1c40f' opacity='0.35' stroke='#fff' stroke-width='0.5'/><title>2:00 — MID</title></g>
+<g class='trail-dot' data-minute='3.0'><circle cx='278.6' cy='253.9' r='5' fill='#f1c40f' opacity='0.38' stroke='#fff' stroke-width='0.5'/><title>3:00 — MID</title></g>
+<g class='trail-dot' data-minute='4.0'><circle cx='210.2' cy='268.9' r='5' fill='#f1c40f' opacity='0.4' stroke='#fff' stroke-width='0.5'/><title>4:00 — MID</title></g>
+<g class='trail-dot' data-minute='5.0'><circle cx='271.2' cy='257.7' r='5' fill='#f1c40f' opacity='0.43' stroke='#fff' stroke-width='0.5'/><title>5:00 — MID</title></g>
+<g class='trail-dot' data-minute='6.0'><circle cx='291.3' cy='240.4' r='5' fill='#f1c40f' opacity='0.45' stroke='#fff' stroke-width='0.5'/><title>6:00 — MID</title></g>
+<g class='trail-dot' data-minute='7.0'><circle cx='300.9' cy='192.3' r='5' fill='#f1c40f' opacity='0.48' stroke='#fff' stroke-width='0.5'/><title>7:00 — MID</title></g>
+<g class='trail-dot' data-minute='8.0'><circle cx='274.0' cy='254.1' r='5' fill='#f1c40f' opacity='0.5' stroke='#fff' stroke-width='0.5'/><title>8:00 — MID</title></g>
+<g class='trail-dot' data-minute='9.0'><circle cx='268.8' cy='233.1' r='5' fill='#f1c40f' opacity='0.53' stroke='#fff' stroke-width='0.5'/><title>9:00 — MID</title></g>
+<g class='trail-dot' data-minute='10.0'><circle cx='366.1' cy='124.1' r='5' fill='#f1c40f' opacity='0.55' stroke='#fff' stroke-width='0.5'/><title>10:00 — MID</title></g>
+<g class='trail-dot' data-minute='11.0'><circle cx='305.1' cy='192.9' r='5' fill='#f1c40f' opacity='0.58' stroke='#fff' stroke-width='0.5'/><title>11:00 — MID</title></g>
+<g class='trail-dot' data-minute='12.0'><circle cx='105.8' cy='89.2' r='5' fill='#f1c40f' opacity='0.6' stroke='#fff' stroke-width='0.5'/><title>12:00 — TOP</title></g>
+<g class='trail-dot' data-minute='13.0'><circle cx='267.9' cy='241.9' r='5' fill='#f1c40f' opacity='0.63' stroke='#fff' stroke-width='0.5'/><title>13:00 — MID</title></g>
+<g class='trail-dot' data-minute='14.0'><circle cx='241.5' cy='256.5' r='5' fill='#f1c40f' opacity='0.65' stroke='#fff' stroke-width='0.5'/><title>14:00 — MID</title></g>
+<g class='trail-dot' data-minute='15.0'><circle cx='258.4' cy='286.2' r='5' fill='#f1c40f' opacity='0.68' stroke='#fff' stroke-width='0.5'/><title>15:00 — MID</title></g>
+<g class='trail-dot' data-minute='16.0'><circle cx='309.9' cy='238.7' r='5' fill='#f1c40f' opacity='0.7' stroke='#fff' stroke-width='0.5'/><title>16:00 — MID</title></g>
+<g class='trail-dot' data-minute='17.0'><circle cx='243.0' cy='277.6' r='5' fill='#f1c40f' opacity='0.73' stroke='#fff' stroke-width='0.5'/><title>17:00 — MID</title></g>
+<g class='trail-dot' data-minute='18.0'><circle cx='290.5' cy='282.5' r='5' fill='#f1c40f' opacity='0.75' stroke='#fff' stroke-width='0.5'/><title>18:00 — MID</title></g>
+<g class='trail-dot' data-minute='19.0'><circle cx='268.4' cy='473.4' r='5' fill='#f1c40f' opacity='0.78' stroke='#fff' stroke-width='0.5'/><title>19:00 — BOT</title></g>
+<g class='trail-dot' data-minute='20.0'><circle cx='302.4' cy='297.8' r='5' fill='#f1c40f' opacity='0.8' stroke='#fff' stroke-width='0.5'/><title>20:00 — DRAGON</title></g>
+<g class='trail-dot' data-minute='21.0'><circle cx='473.0' cy='337.1' r='5' fill='#f1c40f' opacity='0.83' stroke='#fff' stroke-width='0.5'/><title>21:00 — JUNGLE</title></g>
+<g class='trail-dot' data-minute='22.0'><circle cx='433.6' cy='418.1' r='5' fill='#f1c40f' opacity='0.85' stroke='#fff' stroke-width='0.5'/><title>22:00 — BOT</title></g>
+<g class='trail-dot' data-minute='23.0'><circle cx='339.2' cy='152.9' r='5' fill='#f1c40f' opacity='0.88' stroke='#fff' stroke-width='0.5'/><title>23:00 — MID</title></g>
+<g class='trail-dot' data-minute='24.0'><circle cx='321.7' cy='220.0' r='5' fill='#f1c40f' opacity='0.9' stroke='#fff' stroke-width='0.5'/><title>24:00 — MID</title></g>
+<g class='trail-dot' data-minute='25.0'><circle cx='352.8' cy='418.5' r='5' fill='#f1c40f' opacity='0.93' stroke='#fff' stroke-width='0.5'/><title>25:00 — DRAGON</title></g>
+<g class='trail-dot' data-minute='26.0'><circle cx='365.7' cy='39.3' r='5' fill='#f1c40f' opacity='0.95' stroke='#fff' stroke-width='0.5'/><title>26:00 — JUNGLE</title></g>
+<g class='trail-dot' data-minute='27.0'><circle cx='157.9' cy='287.9' r='5' fill='#f1c40f' opacity='0.98' stroke='#fff' stroke-width='0.5'/><title>27:00 — MID</title></g>
+<g class='trail-dot' data-minute='27.8'><circle cx='438.7' cy='76.8' r='5' fill='#f1c40f' opacity='1.0' stroke='#fff' stroke-width='0.5'/><title>27:00 — BASE</title></g><polyline points='488.8,11.2 269.4,259.9 271.7,250.1 278.6,253.9 210.2,268.9 271.2,257.7 291.3,240.4 300.9,192.3 274.0,254.1 268.8,233.1 366.1,124.1 305.1,192.9 105.8,89.2 267.9,241.9 241.5,256.5 258.4,286.2 309.9,238.7 243.0,277.6 290.5,282.5 268.4,473.4 302.4,297.8 473.0,337.1 433.6,418.1 339.2,152.9 321.7,220.0 352.8,418.5 365.7,39.3 157.9,287.9 438.7,76.8' fill='none' stroke='#f1c40f' stroke-width='1' opacity='0.4' stroke-dasharray='4,3'/>
+</svg>
+
+  </div>
+</section>
+
+<section class="event-section death-section">
+  <div class="event-header">
+    <span class="event-time">4:00</span>
+    <span class="event-type death-badge">DEATH #1</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container">
+      <svg width="512" height="512" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='death-marker'><circle cx='210.2' cy='268.9' r='8' fill='#f1c40f' stroke='#fff' stroke-width='2'/><text x='210.2' y='272.9' text-anchor='middle' font-size='10' fill='#000' font-weight='bold'>X</text><title>Sylas died here (6158, 7123)</title></g><g class='enemy-dot'><circle cx='93.3' cy='84.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Trundle — TOP</title></g><g class='enemy-dot'><circle cx='243.0' cy='254.0' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>JarvanIV — MID</title></g><g class='enemy-dot'><circle cx='254.0' cy='259.0' r='7' fill='#ff4444' stroke='#fff' stroke-width='1'/><title>Mel — MID</title></g><g class='enemy-dot'><circle cx='414.7' cy='432.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Veigar — BOT</title></g><g class='enemy-dot'><circle cx='346.8' cy='376.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Bard — DRAGON</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Killed by:</strong> Mel (+ JarvanIV)</p>
+      <p><strong>Zone:</strong> RIVER — Catch en riviere / rotation</p>
+      <p><strong>Avoidable:</strong> Vision | 1100g unspent</p>
+      <p><strong>Your items:</strong> Doran's Ring, Stealth Ward</p>
+      <p><strong>Enemy items:</strong> Doran's Ring, Stealth Ward</p>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You (death)</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section death-section">
+  <div class="event-header">
+    <span class="event-time">6:19</span>
+    <span class="event-type death-badge">DEATH #2</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container">
+      <svg width="512" height="512" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='death-marker'><circle cx='325.6' cy='242.8' r='8' fill='#f1c40f' stroke='#fff' stroke-width='2'/><text x='325.6' y='246.8' text-anchor='middle' font-size='10' fill='#000' font-weight='bold'>X</text><title>Sylas died here (9539, 7887)</title></g><g class='enemy-dot'><circle cx='93.3' cy='84.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Trundle — TOP</title></g><g class='enemy-dot'><circle cx='243.0' cy='254.0' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>JarvanIV — MID</title></g><g class='enemy-dot'><circle cx='254.0' cy='259.0' r='7' fill='#ff4444' stroke='#fff' stroke-width='1'/><title>Mel — MID</title></g><g class='enemy-dot'><circle cx='465.9' cy='40.1' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Veigar — BASE</title></g><g class='enemy-dot'><circle cx='487.9' cy='49.1' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Bard — BASE</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Killed by:</strong> Mel</p>
+      <p><strong>Zone:</strong> RIVER — Catch en riviere / rotation</p>
+      <p><strong>Avoidable:</strong> Vision | 643g unspent</p>
+      <p><strong>Your items:</strong> Doran's Ring, Amplifying Tome, Refillable Potion, Amplifying Tome, Stealth Ward</p>
+      <p><strong>Enemy items:</strong> Doran's Ring, Refillable Potion, Lost Chapter, Stealth Ward</p>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You (death)</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section death-section">
+  <div class="event-header">
+    <span class="event-time">10:47</span>
+    <span class="event-type death-badge">DEATH #3</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container">
+      <svg width="512" height="512" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='death-marker'><circle cx='305.1' cy='192.9' r='8' fill='#f1c40f' stroke='#fff' stroke-width='2'/><text x='305.1' y='196.9' text-anchor='middle' font-size='10' fill='#000' font-weight='bold'>X</text><title>Sylas died here (8939, 9349)</title></g><g class='enemy-dot'><circle cx='93.3' cy='84.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Trundle — TOP</title></g><g class='enemy-dot'><circle cx='72.3' cy='83.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>JarvanIV — TOP</title></g><g class='enemy-dot'><circle cx='254.0' cy='259.0' r='7' fill='#ff4444' stroke='#fff' stroke-width='1'/><title>Mel — MID</title></g><g class='enemy-dot'><circle cx='414.7' cy='432.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Veigar — BOT</title></g><g class='enemy-dot'><circle cx='436.7' cy='441.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Bard — BOT</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Killed by:</strong> Mel</p>
+      <p><strong>Zone:</strong> DOVE_UNDER_YOUR_TOWER — Tu te fais dive sous ta tour</p>
+      <p><strong>Avoidable:</strong> Difficilement | 408g unspent</p>
+      <p><strong>Your items:</strong> Doran's Ring, Hextech Alternator, Refillable Potion, Amplifying Tome, Null-Magic Mantle, Glowing Mote, Stealth Ward</p>
+      <p><strong>Enemy items:</strong> Doran's Ring, Refillable Potion, Luden's Echo, Boots, Stealth Ward</p>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You (death)</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section death-section">
+  <div class="event-header">
+    <span class="event-time">12:03</span>
+    <span class="event-type death-badge">DEATH #4</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container">
+      <svg width="512" height="512" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='death-marker'><circle cx='105.5' cy='74.5' r='8' fill='#f1c40f' stroke='#fff' stroke-width='2'/><text x='105.5' y='78.5' text-anchor='middle' font-size='10' fill='#000' font-weight='bold'>X</text><title>Sylas died here (3090, 12817)</title></g><g class='enemy-dot'><circle cx='177.5' cy='151.2' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Trundle — BARON</title></g><g class='enemy-dot'><circle cx='72.3' cy='83.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>JarvanIV — TOP</title></g><g class='enemy-dot'><circle cx='167.5' cy='155.2' r='7' fill='#ff4444' stroke='#fff' stroke-width='1'/><title>Mel — BARON</title></g><g class='enemy-dot'><circle cx='158.7' cy='193.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Veigar — JUNGLE</title></g><g class='enemy-dot'><circle cx='179.5' cy='167.2' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Bard — BARON</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Killed by:</strong> Mel (+ Trundle, JarvanIV, Bard)</p>
+      <p><strong>Zone:</strong> RIVER — Catch en riviere / rotation</p>
+      <p><strong>Avoidable:</strong> Vision | 332g unspent</p>
+      <p><strong>Your items:</strong> Doran's Ring, Hextech Alternator, Refillable Potion, Control Ward, Null-Magic Mantle, Fiendish Codex, Stealth Ward</p>
+      <p><strong>Enemy items:</strong> Doran's Ring, Refillable Potion, Luden's Echo, Boots, Needlessly Large Rod, Stealth Ward</p>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You (death)</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section death-section">
+  <div class="event-header">
+    <span class="event-time">14:34</span>
+    <span class="event-type death-badge">DEATH #5</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container">
+      <svg width="512" height="512" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='death-marker'><circle cx='258.4' cy='286.2' r='8' fill='#f1c40f' stroke='#fff' stroke-width='2'/><text x='258.4' y='290.2' text-anchor='middle' font-size='10' fill='#000' font-weight='bold'>X</text><title>Sylas died here (7569, 6614)</title></g><g class='enemy-dot'><circle cx='177.5' cy='151.2' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Trundle — BARON</title></g><g class='enemy-dot'><circle cx='243.0' cy='254.0' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>JarvanIV — MID</title></g><g class='enemy-dot'><circle cx='254.0' cy='259.0' r='7' fill='#ff4444' stroke='#fff' stroke-width='1'/><title>Mel — MID</title></g><g class='enemy-dot'><circle cx='414.7' cy='432.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Veigar — BOT</title></g><g class='enemy-dot'><circle cx='95.3' cy='100.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Bard — TOP</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Killed by:</strong> Mel</p>
+      <p><strong>Zone:</strong> RIVER — Catch en riviere / rotation</p>
+      <p><strong>Avoidable:</strong> Vision | 83g unspent</p>
+      <p><strong>Your items:</strong> Doran's Ring, Hextech Rocketbelt, Refillable Potion, Control Ward, Null-Magic Mantle, Stealth Ward</p>
+      <p><strong>Enemy items:</strong> Doran's Ring, Refillable Potion, Luden's Echo, Spellslinger's Shoes, Needlessly Large Rod, Stealth Ward</p>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You (death)</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section death-section">
+  <div class="event-header">
+    <span class="event-time">16:35</span>
+    <span class="event-type death-badge">DEATH #6</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container">
+      <svg width="512" height="512" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='death-marker'><circle cx='243.0' cy='277.6' r='8' fill='#f1c40f' stroke='#fff' stroke-width='2'/><text x='243.0' y='281.6' text-anchor='middle' font-size='10' fill='#000' font-weight='bold'>X</text><title>Sylas died here (7118, 6868)</title></g><g class='enemy-dot'><circle cx='434.7' cy='425.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Trundle — BOT</title></g><g class='enemy-dot'><circle cx='72.3' cy='83.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>JarvanIV — TOP</title></g><g class='enemy-dot'><circle cx='254.0' cy='259.0' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Mel — MID</title></g><g class='enemy-dot'><circle cx='414.7' cy='432.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Veigar — BOT</title></g><g class='enemy-dot'><circle cx='266.0' cy='271.0' r='7' fill='#ff4444' stroke='#fff' stroke-width='1'/><title>Bard — MID</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Killed by:</strong> Bard (+ JarvanIV)</p>
+      <p><strong>Zone:</strong> RIVER — Catch en riviere / rotation</p>
+      <p><strong>Avoidable:</strong> Vision | 153g unspent</p>
+      <p><strong>Your items:</strong> Doran's Ring, Hextech Rocketbelt, Refillable Potion, Null-Magic Mantle, Boots, Stealth Ward</p>
+      <p><strong>Enemy items:</strong> Doran's Ring, Refillable Potion, Luden's Echo, Spellslinger's Shoes, Needlessly Large Rod, Hextech Alternator, Stealth Ward</p>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You (death)</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section death-section">
+  <div class="event-header">
+    <span class="event-time">26:48</span>
+    <span class="event-type death-badge">DEATH #7</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container">
+      <svg width="512" height="512" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='death-marker'><circle cx='157.9' cy='287.9' r='8' fill='#f1c40f' stroke='#fff' stroke-width='2'/><text x='157.9' y='291.9' text-anchor='middle' font-size='10' fill='#000' font-weight='bold'>X</text><title>Sylas died here (4627, 6565)</title></g><g class='enemy-dot'><circle cx='178.7' cy='186.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Trundle — JUNGLE</title></g><g class='enemy-dot'><circle cx='72.3' cy='83.3' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>JarvanIV — TOP</title></g><g class='enemy-dot'><circle cx='254.0' cy='259.0' r='7' fill='#ff4444' stroke='#fff' stroke-width='1'/><title>Mel — MID</title></g><g class='enemy-dot'><circle cx='158.7' cy='193.7' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Veigar — JUNGLE</title></g><g class='enemy-dot'><circle cx='266.0' cy='271.0' r='5' fill='#cc3333' stroke='#fff' stroke-width='1'/><title>Bard — MID</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Killed by:</strong> Mel (+ JarvanIV, Veigar, Bard)</p>
+      <p><strong>Zone:</strong> RIVER — Catch en riviere / rotation</p>
+      <p><strong>Avoidable:</strong> Vision | 825g unspent</p>
+      <p><strong>Your items:</strong> Shattered Armguard, Hextech Rocketbelt, Refillable Potion, Chainlaced Crushers, Riftmaker, Doran's Ring, Oracle Lens</p>
+      <p><strong>Enemy items:</strong> Shadowflame, Needlessly Large Rod, Luden's Echo, Spellslinger's Shoes, Needlessly Large Rod, Stealth Ward</p>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You (death)</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section teamfight-section">
+  <div class="event-header">
+    <span class="event-time">3:55</span>
+    <span class="event-type tf-lost">TEAMFIGHT #1 — LOST</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='tf-dot'><circle cx='239.0' cy='233.9' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Mel</title></g><g class='tf-dot'><circle cx='266.5' cy='190.8' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Gwen</title></g><g class='tf-dot'><circle cx='295.9' cy='315.3' r='7' fill='#f1c40f' stroke='#fff' stroke-width='1'/><title>Sylas</title></g><g class='tf-dot'><circle cx='289.4' cy='325.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Fiora</title></g><g class='tf-dot'><circle cx='175.3' cy='236.4' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Trundle</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Duration:</strong> 21.5s | <strong>Score:</strong> 2 - 3 (5 kills)</p>
+      <p><strong>You died:</strong> Yes | <strong>You got kill:</strong> Yes</p>
+      <div class="kill-feed"><div class='kill-entry kill-enemy'>Mel killed Gwen</div>
+<div class='kill-entry kill-ally'>Sylas killed Mel</div>
+<div class='kill-entry kill-enemy'>Mel killed Sylas</div>
+<div class='kill-entry kill-ally'>Fiora killed Trundle</div>
+<div class='kill-entry kill-enemy'>Trundle killed Fiora</div></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You</span>
+        <span class="legend-item"><span class="dot blue-dot"></span> Allies</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section teamfight-section">
+  <div class="event-header">
+    <span class="event-time">7:01</span>
+    <span class="event-type tf-won">TEAMFIGHT #2 — WON</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='tf-dot'><circle cx='183.7' cy='223.3' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>JarvanIV</title></g><g class='tf-dot'><circle cx='289.4' cy='325.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Fiora</title></g><g class='tf-dot'><circle cx='266.5' cy='190.8' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Gwen</title></g><g class='tf-dot'><circle cx='175.3' cy='236.4' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Trundle</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Duration:</strong> 19.4s | <strong>Score:</strong> 2 - 1 (3 kills)</p>
+      <p><strong>You died:</strong> No | <strong>You got kill:</strong> No</p>
+      <div class="kill-feed"><div class='kill-entry kill-enemy'>JarvanIV killed Fiora</div>
+<div class='kill-entry kill-ally'>Fiora killed JarvanIV</div>
+<div class='kill-entry kill-ally'>Gwen killed Trundle</div></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You</span>
+        <span class="legend-item"><span class="dot blue-dot"></span> Allies</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section teamfight-section">
+  <div class="event-header">
+    <span class="event-time">11:19</span>
+    <span class="event-type tf-lost">TEAMFIGHT #3 — LOST</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='tf-dot'><circle cx='183.7' cy='223.3' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>JarvanIV</title></g><g class='tf-dot'><circle cx='289.4' cy='325.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Fiora</title></g><g class='tf-dot'><circle cx='266.5' cy='190.8' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Gwen</title></g><g class='tf-dot'><circle cx='239.0' cy='233.9' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Mel</title></g><g class='tf-dot'><circle cx='295.9' cy='315.3' r='7' fill='#f1c40f' stroke='#fff' stroke-width='1'/><title>Sylas</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Duration:</strong> 44.2s | <strong>Score:</strong> 0 - 3 (3 kills)</p>
+      <p><strong>You died:</strong> Yes | <strong>You got kill:</strong> No</p>
+      <div class="kill-feed"><div class='kill-entry kill-enemy'>JarvanIV killed Fiora</div>
+<div class='kill-entry kill-enemy'>JarvanIV killed Gwen</div>
+<div class='kill-entry kill-enemy'>Mel killed Sylas</div></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You</span>
+        <span class="legend-item"><span class="dot blue-dot"></span> Allies</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section teamfight-section">
+  <div class="event-header">
+    <span class="event-time">14:06</span>
+    <span class="event-type tf-lost">TEAMFIGHT #4 — LOST</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='tf-dot'><circle cx='315.5' cy='284.5' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Veigar</title></g><g class='tf-dot'><circle cx='288.9' cy='326.2' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Leona</title></g><g class='tf-dot'><circle cx='239.0' cy='233.9' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Mel</title></g><g class='tf-dot'><circle cx='266.5' cy='190.8' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Gwen</title></g><g class='tf-dot'><circle cx='295.9' cy='315.3' r='7' fill='#f1c40f' stroke='#fff' stroke-width='1'/><title>Sylas</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Duration:</strong> 27.3s | <strong>Score:</strong> 0 - 3 (3 kills)</p>
+      <p><strong>You died:</strong> Yes | <strong>You got kill:</strong> No</p>
+      <div class="kill-feed"><div class='kill-entry kill-enemy'>Veigar killed Leona</div>
+<div class='kill-entry kill-enemy'>Mel killed Gwen</div>
+<div class='kill-entry kill-enemy'>Mel killed Sylas</div></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You</span>
+        <span class="legend-item"><span class="dot blue-dot"></span> Allies</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section teamfight-section">
+  <div class="event-header">
+    <span class="event-time">18:36</span>
+    <span class="event-type tf-won">TEAMFIGHT #5 — WON</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='tf-dot'><circle cx='295.9' cy='315.3' r='7' fill='#f1c40f' stroke='#fff' stroke-width='1'/><title>Sylas</title></g><g class='tf-dot'><circle cx='315.5' cy='284.5' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Veigar</title></g><g class='tf-dot'><circle cx='289.4' cy='325.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Fiora</title></g><g class='tf-dot'><circle cx='239.0' cy='233.9' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Mel</title></g><g class='tf-dot'><circle cx='260.7' cy='199.8' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Bard</title></g><g class='tf-dot'><circle cx='183.7' cy='223.3' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>JarvanIV</title></g><g class='tf-dot'><circle cx='288.9' cy='326.2' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Leona</title></g><g class='tf-dot'><circle cx='266.5' cy='190.8' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Gwen</title></g><g class='tf-dot'><circle cx='175.3' cy='236.4' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Trundle</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Duration:</strong> 91.8s | <strong>Score:</strong> 6 - 1 (7 kills)</p>
+      <p><strong>You died:</strong> No | <strong>You got kill:</strong> Yes</p>
+      <div class="kill-feed"><div class='kill-entry kill-ally'>Sylas killed Veigar</div>
+<div class='kill-entry kill-ally'>Fiora killed Mel</div>
+<div class='kill-entry kill-ally'>Fiora killed Bard</div>
+<div class='kill-entry kill-enemy'>JarvanIV killed Leona</div>
+<div class='kill-entry kill-ally'>Gwen killed Trundle</div>
+<div class='kill-entry kill-ally'>Fiora killed Mel</div>
+<div class='kill-entry kill-ally'>Sylas killed JarvanIV</div></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You</span>
+        <span class="legend-item"><span class="dot blue-dot"></span> Allies</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section teamfight-section">
+  <div class="event-header">
+    <span class="event-time">22:07</span>
+    <span class="event-type tf-lost">TEAMFIGHT #6 — LOST</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='tf-dot'><circle cx='183.7' cy='223.3' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>JarvanIV</title></g><g class='tf-dot'><circle cx='289.4' cy='325.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Fiora</title></g><g class='tf-dot'><circle cx='315.5' cy='284.5' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Veigar</title></g><g class='tf-dot'><circle cx='266.5' cy='190.8' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Gwen</title></g><g class='tf-dot'><circle cx='295.9' cy='315.3' r='7' fill='#f1c40f' stroke='#fff' stroke-width='1'/><title>Sylas</title></g><g class='tf-dot'><circle cx='175.3' cy='236.4' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Trundle</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Duration:</strong> 13.5s | <strong>Score:</strong> 1 - 2 (3 kills)</p>
+      <p><strong>You died:</strong> No | <strong>You got kill:</strong> Yes</p>
+      <div class="kill-feed"><div class='kill-entry kill-enemy'>JarvanIV killed Fiora</div>
+<div class='kill-entry kill-enemy'>Veigar killed Gwen</div>
+<div class='kill-entry kill-ally'>Sylas killed Trundle</div></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You</span>
+        <span class="legend-item"><span class="dot blue-dot"></span> Allies</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section teamfight-section">
+  <div class="event-header">
+    <span class="event-time">24:50</span>
+    <span class="event-type tf-won">TEAMFIGHT #7 — WON</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='tf-dot'><circle cx='289.4' cy='325.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Fiora</title></g><g class='tf-dot'><circle cx='175.3' cy='236.4' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Trundle</title></g><g class='tf-dot'><circle cx='173.4' cy='239.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Smolder</title></g><g class='tf-dot'><circle cx='260.7' cy='199.8' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Bard</title></g><g class='tf-dot'><circle cx='239.0' cy='233.9' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Mel</title></g><g class='tf-dot'><circle cx='288.9' cy='326.2' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Leona</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Duration:</strong> 20.4s | <strong>Score:</strong> 3 - 1 (4 kills)</p>
+      <p><strong>You died:</strong> No | <strong>You got kill:</strong> No</p>
+      <div class="kill-feed"><div class='kill-entry kill-ally'>Fiora killed Trundle</div>
+<div class='kill-entry kill-ally'>Smolder killed Bard</div>
+<div class='kill-entry kill-enemy'>Mel killed Leona</div>
+<div class='kill-entry kill-ally'>Fiora killed Mel</div></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You</span>
+        <span class="legend-item"><span class="dot blue-dot"></span> Allies</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section teamfight-section">
+  <div class="event-header">
+    <span class="event-time">26:48</span>
+    <span class="event-type tf-lost">TEAMFIGHT #8 — LOST</span>
+  </div>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='tf-dot'><circle cx='239.0' cy='233.9' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Mel</title></g><g class='tf-dot'><circle cx='295.9' cy='315.3' r='7' fill='#f1c40f' stroke='#fff' stroke-width='1'/><title>Sylas</title></g><g class='tf-dot'><circle cx='288.9' cy='326.2' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Leona</title></g><g class='tf-dot'><circle cx='266.5' cy='190.8' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Gwen</title></g><g class='tf-dot'><circle cx='315.5' cy='284.5' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Veigar</title></g><g class='tf-dot'><circle cx='175.3' cy='236.4' r='5' fill='#e74c3c' stroke='#fff' stroke-width='1'/><title>Trundle</title></g><g class='tf-dot'><circle cx='289.4' cy='325.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Fiora</title></g><g class='tf-dot'><circle cx='173.4' cy='239.4' r='5' fill='#4aa3df' stroke='#fff' stroke-width='1'/><title>Smolder</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <p><strong>Duration:</strong> 11.9s | <strong>Score:</strong> 1 - 5 (6 kills)</p>
+      <p><strong>You died:</strong> Yes | <strong>You got kill:</strong> No</p>
+      <div class="kill-feed"><div class='kill-entry kill-enemy'>Mel killed Sylas</div>
+<div class='kill-entry kill-enemy'>Mel killed Leona</div>
+<div class='kill-entry kill-ally'>Gwen killed Mel</div>
+<div class='kill-entry kill-enemy'>Veigar killed Gwen</div>
+<div class='kill-entry kill-enemy'>Trundle killed Fiora</div>
+<div class='kill-entry kill-enemy'>Veigar killed Smolder</div></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot gold-dot"></span> You</span>
+        <span class="legend-item"><span class="dot blue-dot"></span> Allies</span>
+        <span class="legend-item"><span class="dot red-dot"></span> Enemies</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="event-section objectives-section">
+  <h2>Objectives</h2>
+  <div class="event-body">
+    <div class="minimap-container small-map">
+      <svg width="256" height="256" viewBox="0 0 512 512" class="minimap-svg">
+  <image href="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/map/map11.png"
+         x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>
+  <g class='obj-marker'><rect x='163.5' y='146.2' width='12' height='12' fill='#4aa3df' stroke='#fff' stroke-width='1' rx='2'/><title>8:25 — Voidgrubs (YOUR_TEAM)</title></g><g class='obj-marker'><rect x='330.8' y='355.3' width='12' height='12' fill='#e74c3c' stroke='#fff' stroke-width='1' rx='2'/><title>8:31 — Dragon (Hextech) (ENEMY_TEAM)</title></g><g class='obj-marker'><rect x='163.5' y='146.2' width='12' height='12' fill='#4aa3df' stroke='#fff' stroke-width='1' rx='2'/><title>8:34 — Voidgrubs (YOUR_TEAM)</title></g><g class='obj-marker'><rect x='163.5' y='146.2' width='12' height='12' fill='#4aa3df' stroke='#fff' stroke-width='1' rx='2'/><title>8:37 — Voidgrubs (YOUR_TEAM)</title></g><g class='obj-marker'><rect x='330.8' y='355.3' width='12' height='12' fill='#e74c3c' stroke='#fff' stroke-width='1' rx='2'/><title>14:32 — Dragon (Ocean) (ENEMY_TEAM)</title></g><g class='obj-marker'><rect x='163.5' y='146.2' width='12' height='12' fill='#e74c3c' stroke='#fff' stroke-width='1' rx='2'/><title>18:05 — Herald (ENEMY_TEAM)</title></g><g class='obj-marker'><rect x='330.8' y='355.3' width='12' height='12' fill='#4aa3df' stroke='#fff' stroke-width='1' rx='2'/><title>20:25 — Dragon (Cloud) (YOUR_TEAM)</title></g><g class='obj-marker'><rect x='330.8' y='355.3' width='12' height='12' fill='#4aa3df' stroke='#fff' stroke-width='1' rx='2'/><title>25:36 — Dragon (Cloud) (YOUR_TEAM)</title></g><g class='obj-marker'><rect x='163.5' y='146.2' width='12' height='12' fill='#e74c3c' stroke='#fff' stroke-width='1' rx='2'/><title>27:34 — Baron (ENEMY_TEAM)</title></g>
+</svg>
+
+    </div>
+    <div class="event-details">
+      <table class="obj-table">
+        <thead><tr><th>Time</th><th>Objective</th><th>Taken by</th><th>Your zone</th><th>Present</th></tr></thead>
+        <tbody><tr class='obj-yours'><td>8:25</td><td>Voidgrubs</td><td>Your team</td><td>MID</td><td>No</td></tr><tr class='obj-enemy'><td>8:31</td><td>Dragon (Hextech)</td><td>Enemy</td><td>MID</td><td>No</td></tr><tr class='obj-yours'><td>8:34</td><td>Voidgrubs</td><td>Your team</td><td>MID</td><td>No</td></tr><tr class='obj-yours'><td>8:37</td><td>Voidgrubs</td><td>Your team</td><td>MID</td><td>No</td></tr><tr class='obj-enemy'><td>14:32</td><td>Dragon (Ocean)</td><td>Enemy</td><td>MID</td><td>No</td></tr><tr class='obj-enemy'><td>18:05</td><td>Herald</td><td>Enemy</td><td>MID</td><td>No</td></tr><tr class='obj-yours'><td>20:25</td><td>Dragon (Cloud)</td><td>Your team</td><td>DRAGON</td><td>No</td></tr><tr class='obj-yours'><td>25:36</td><td>Dragon (Cloud)</td><td>Your team</td><td>JUNGLE</td><td>No</td></tr><tr class='obj-enemy'><td>27:34</td><td>Baron</td><td>Enemy</td><td>BASE</td><td>No</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+  <footer>Generated by LoL IA Coaching Visualizer</footer>
+</body>
+</html>

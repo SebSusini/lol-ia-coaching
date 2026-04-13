@@ -25,6 +25,7 @@ OptionParser.new do |opts|
   opts.on("--provider PROVIDER", "LLM provider: claude, openai, ollama, gemini, mistral (default: claude)") { |v| options[:provider] = v }
   opts.on("--model MODEL", "Model override (e.g. gpt-4o, llama3, claude-sonnet-4-20250514)") { |v| options[:model] = v }
   opts.on("--output FILE", "Save review to file (default: stdout)") { |v| options[:output] = v }
+  opts.on("--html", "Also generate HTML minimap visualization") { options[:html] = true }
 end.parse!
 
 unless options[:timeline]
@@ -41,6 +42,19 @@ extractor = Extractor.new(
 )
 review_data = extractor.extract
 review_json = JSON.pretty_generate(review_data)
+
+# Step 1b: Generate HTML visualization if requested
+if options[:html]
+  require_relative "../lib/visualizer"
+  # Save review JSON temporarily for the visualizer
+  match_id = review_data.dig(:meta, :match_id) || File.basename(options[:timeline], "_timeline.json")
+  review_json_path = File.join(__dir__, "..", "..", "output", "#{match_id}_review_v4.json")
+  File.write(review_json_path, review_json)
+  html_path = File.join(__dir__, "..", "..", "output", "#{match_id}_visual.html")
+  vis = Visualizer.new(review_json_path)
+  vis.save(html_path)
+  puts "  HTML visualization: #{html_path}"
+end
 
 # Step 2: Load prompt + champion/role knowledge
 prompt_path = File.join(__dir__, "..", "..", "prompts", "review.md")
