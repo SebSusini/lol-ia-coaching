@@ -21,5 +21,5 @@ extractor/vendor/
 # IDE
 .vscode/
 .idea/
-decoder/
 .item_cache.json
+output/*.html
