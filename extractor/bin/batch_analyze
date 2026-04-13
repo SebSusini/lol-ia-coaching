@@ -1,0 +1,196 @@
+#!/usr/bin/env ruby
+# Batch analyze multiple replays automatically
+# Launches each replay via LCU API, records positions via Frida,
+# fetches Riot API timeline, and generates review JSON
+#
+# Usage: ruby batch_analyze [--count 5] [--summoner "Name"]
+
+require "net/http"
+require "json"
+require "uri"
+require "openssl"
+require "optparse"
+require "dotenv/load"
+
+$LOAD_PATH.unshift(File.join(__dir__, "..", "lib"))
+
+options = { count: 5, summoner: ENV["RIOT_SUMMONER_NAME"] }
+OptionParser.new do |opts|
+  opts.banner = "Usage: batch_analyze [options]"
+  opts.on("--count N", Integer, "Number of games to analyze (default: 5)") { |v| options[:count] = v }
+  opts.on("--summoner NAME", "Summoner name") { |v| options[:summoner] = v }
+end.parse!
+
+PROJECT_DIR = File.expand_path("../../..", __FILE__)
+
+class LCUClient
+  def initialize
+    lockfile = "/Applications/League of Legends.app/Contents/LoL/lockfile"
+    data = File.read(lockfile).split(":")
+    @port = data[2]
+    @token = data[3]
+  end
+
+  def get(path)
+    request(:get, path)
+  end
+
+  def post(path, body = nil)
+    request(:post, path, body)
+  end
+
+  private
+
+  def request(method, path, body = nil)
+    uri = URI("https://127.0.0.1:#{@port}#{path}")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    http.open_timeout = 5
+    http.read_timeout = 10
+
+    req = case method
+    when :get then Net::HTTP::Get.new(uri)
+    when :post
+      r = Net::HTTP::Post.new(uri)
+      r.body = body.to_json if body
+      r["Content-Type"] = "application/json"
+      r
+    end
+    req.basic_auth("riot", @token)
+
+    response = http.request(req)
+    JSON.parse(response.body) rescue response.body
+  end
+end
+
+def wait_for_game_start(timeout: 60)
+  puts "  Waiting for replay to start..."
+  timeout.times do
+    pid = `pgrep LeagueofLegends`.strip
+    unless pid.empty?
+      sleep 5 # Let it initialize
+      puts "  Game started (PID #{pid})"
+      return pid.to_i
+    end
+    sleep 1
+  end
+  nil
+end
+
+def wait_for_game_end(timeout: 2400) # 40 min max
+  puts "  Waiting for replay to finish..."
+  timeout.times do
+    pid = `pgrep LeagueofLegends`.strip
+    if pid.empty?
+      puts "  Game ended"
+      return true
+    end
+    sleep 1
+  end
+  false
+end
+
+def record_positions(output_file, duration: 240)
+  puts "  Recording positions for #{duration}s..."
+  system("ruby", "#{PROJECT_DIR}/extractor/bin/record_positions", output_file)
+end
+
+def fetch_timeline(match_id, output_file)
+  puts "  Fetching Riot API timeline for #{match_id}..."
+  system("ruby", "#{PROJECT_DIR}/extractor/bin/fetch_timeline",
+    "--match-id", match_id,
+    "--output", output_file)
+end
+
+# --- Main ---
+
+puts "=== Batch Replay Analyzer ==="
+puts "Summoner: #{options[:summoner]}"
+puts "Games to analyze: #{options[:count]}"
+puts ""
+
+# Get recent match IDs
+require_relative "../lib/riot_api_client"
+client = RiotApiClient.new
+account = client.account_by_riot_id(options[:summoner], ENV["RIOT_TAG_LINE"] || "EUW")
+puuid = account["puuid"]
+match_ids = client.match_history(puuid, count: options[:count])
+
+puts "Found #{match_ids.size} recent games:"
+match_ids.each { |id| puts "  #{id}" }
+puts ""
+
+# Connect to LCU
+lcu = LCUClient.new
+config = lcu.get("/lol-replays/v1/configuration")
+puts "LCU connected (version #{config['gameVersion']})"
+
+# Check which replays are available locally
+available = []
+match_ids.each do |match_id|
+  game_id = match_id.split("_").last
+  meta = lcu.get("/lol-replays/v1/metadata/#{game_id}")
+  if meta.is_a?(Hash) && meta["state"]
+    available << { match_id: match_id, game_id: game_id, state: meta["state"] }
+    puts "  #{match_id}: #{meta['state']}"
+  else
+    puts "  #{match_id}: not available"
+  end
+end
+
+puts "\n#{available.size} replays available for analysis"
+puts ""
+
+# Analyze each replay
+available.each_with_index do |replay, idx|
+  puts "=== Game #{idx + 1}/#{available.size}: #{replay[:match_id]} ==="
+
+  output_dir = "#{PROJECT_DIR}/output"
+  timeline_file = "#{output_dir}/#{replay[:match_id]}_timeline.json"
+  positions_file = "#{output_dir}/#{replay[:match_id]}_positions.json"
+  review_file = "#{output_dir}/#{replay[:match_id]}_review.json"
+
+  # Step 1: Fetch Riot API timeline (if not already cached)
+  unless File.exist?(timeline_file)
+    fetch_timeline(replay[:match_id], timeline_file)
+    sleep 1.5 # Rate limit
+  else
+    puts "  Timeline already cached"
+  end
+
+  # Step 2: Launch replay via LCU API
+  puts "  Launching replay #{replay[:game_id]}..."
+  lcu.post("/lol-replays/v1/rofls/#{replay[:game_id]}/watch", { componentType: "replay" })
+
+  # Step 3: Wait for game to start
+  pid = wait_for_game_start
+  unless pid
+    puts "  FAILED to start replay, skipping"
+    next
+  end
+
+  # Step 4: Record positions via Frida
+  # Run in background while replay plays
+  positions_thread = Thread.new { record_positions(positions_file) }
+
+  # Step 5: Wait for replay to end
+  wait_for_game_end
+
+  # Step 6: Stop recording
+  positions_thread.kill rescue nil
+
+  # Step 7: Generate review
+  puts "  Generating review..."
+  system("ruby", "#{PROJECT_DIR}/extractor/bin/extract",
+    "--timeline", timeline_file,
+    "--summoner", options[:summoner],
+    "--output", review_file)
+
+  puts "  Review saved to #{review_file}"
+  puts ""
+
+  sleep 3 # Pause between games
+end
+
+puts "=== Done! #{available.size} games analyzed ==="
