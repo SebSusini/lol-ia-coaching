@@ -1,0 +1,204 @@
+#!/usr/bin/env ruby
+# Generates a coaching review using any LLM API
+# Usage: ruby review-auto --timeline output/timeline.json --summoner "Name" [--provider claude|openai|ollama]
+
+require "net/http"
+require "json"
+require "uri"
+require "optparse"
+require "dotenv/load"
+
+$LOAD_PATH.unshift(File.join(__dir__, "..", "lib"))
+require "extractor"
+
+options = {
+  provider: ENV["LLM_PROVIDER"] || "claude",
+  model: nil,
+  summoner: ENV["RIOT_SUMMONER_NAME"]
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: review-auto [options]"
+  opts.on("--timeline FILE", "Timeline JSON file") { |v| options[:timeline] = v }
+  opts.on("--live FILE", "Live recording JSON (optional)") { |v| options[:live] = v }
+  opts.on("--summoner NAME", "Summoner name") { |v| options[:summoner] = v }
+  opts.on("--provider PROVIDER", "LLM provider: claude, openai, ollama, gemini, mistral (default: claude)") { |v| options[:provider] = v }
+  opts.on("--model MODEL", "Model override (e.g. gpt-4o, llama3, claude-sonnet-4-20250514)") { |v| options[:model] = v }
+  opts.on("--output FILE", "Save review to file (default: stdout)") { |v| options[:output] = v }
+end.parse!
+
+unless options[:timeline]
+  puts "Error: --timeline is required"
+  exit 1
+end
+
+# Step 1: Extract review JSON
+puts "Extracting game data..."
+extractor = Extractor.new(
+  timeline_path: options[:timeline],
+  live_path: options[:live],
+  summoner_name: options[:summoner]
+)
+review_data = extractor.extract
+review_json = JSON.pretty_generate(review_data)
+
+# Step 2: Load prompt
+prompt_path = File.join(__dir__, "..", "..", "prompts", "review.md")
+prompt_template = File.read(prompt_path)
+
+# Build the full prompt
+full_prompt = prompt_template
+  .gsub("{champion}", review_data[:meta][:champion] || "?")
+  .gsub("{role}", review_data[:meta][:role] || "?")
+  .gsub("{enemy_laner}", review_data[:meta][:enemy_laner][:champion] || "?")
+  .gsub("{result}", review_data[:meta][:result] || "?")
+  .gsub("{duration}", "#{(review_data[:meta][:duration_seconds] || 0) / 60} minutes")
+  .gsub("{elo}", "Emerald 2")
+  .gsub("{json_content}", review_json)
+
+# Step 3: Call LLM API
+def call_claude(prompt, model)
+  api_key = ENV["ANTHROPIC_API_KEY"] || ENV["CLAUDE_API_KEY"]
+  raise "Set ANTHROPIC_API_KEY in .env" unless api_key
+
+  model ||= "claude-sonnet-4-20250514"
+  uri = URI("https://api.anthropic.com/v1/messages")
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+  http.read_timeout = 120
+
+  body = {
+    model: model,
+    max_tokens: 4096,
+    messages: [{ role: "user", content: prompt }]
+  }.to_json
+
+  request = Net::HTTP::Post.new(uri)
+  request["Content-Type"] = "application/json"
+  request["x-api-key"] = api_key
+  request["anthropic-version"] = "2023-06-01"
+  request.body = body
+
+  response = http.request(request)
+  data = JSON.parse(response.body)
+  data.dig("content", 0, "text") || data.to_s
+end
+
+def call_openai(prompt, model)
+  api_key = ENV["OPENAI_API_KEY"]
+  raise "Set OPENAI_API_KEY in .env" unless api_key
+
+  model ||= "gpt-4o"
+  uri = URI("https://api.openai.com/v1/chat/completions")
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+  http.read_timeout = 120
+
+  body = {
+    model: model,
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: 4096
+  }.to_json
+
+  request = Net::HTTP::Post.new(uri)
+  request["Content-Type"] = "application/json"
+  request["Authorization"] = "Bearer #{api_key}"
+  request.body = body
+
+  response = http.request(request)
+  data = JSON.parse(response.body)
+  data.dig("choices", 0, "message", "content") || data.to_s
+end
+
+def call_ollama(prompt, model)
+  model ||= "llama3"
+  uri = URI("http://localhost:11434/api/generate")
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.read_timeout = 300
+
+  body = {
+    model: model,
+    prompt: prompt,
+    stream: false
+  }.to_json
+
+  request = Net::HTTP::Post.new(uri)
+  request["Content-Type"] = "application/json"
+  request.body = body
+
+  response = http.request(request)
+  data = JSON.parse(response.body)
+  data["response"] || data.to_s
+end
+
+def call_gemini(prompt, model)
+  api_key = ENV["GEMINI_API_KEY"] || ENV["GOOGLE_API_KEY"]
+  raise "Set GEMINI_API_KEY in .env" unless api_key
+
+  model ||= "gemini-2.0-flash"
+  uri = URI("https://generativelanguage.googleapis.com/v1beta/models/#{model}:generateContent?key=#{api_key}")
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+  http.read_timeout = 120
+
+  body = {
+    contents: [{ parts: [{ text: prompt }] }]
+  }.to_json
+
+  request = Net::HTTP::Post.new(uri)
+  request["Content-Type"] = "application/json"
+  request.body = body
+
+  response = http.request(request)
+  data = JSON.parse(response.body)
+  data.dig("candidates", 0, "content", "parts", 0, "text") || data.to_s
+end
+
+def call_mistral(prompt, model)
+  api_key = ENV["MISTRAL_API_KEY"]
+  raise "Set MISTRAL_API_KEY in .env" unless api_key
+
+  model ||= "mistral-large-latest"
+  uri = URI("https://api.mistral.ai/v1/chat/completions")
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+  http.read_timeout = 120
+
+  body = {
+    model: model,
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: 4096
+  }.to_json
+
+  request = Net::HTTP::Post.new(uri)
+  request["Content-Type"] = "application/json"
+  request["Authorization"] = "Bearer #{api_key}"
+  request.body = body
+
+  response = http.request(request)
+  data = JSON.parse(response.body)
+  data.dig("choices", 0, "message", "content") || data.to_s
+end
+
+puts "Generating review with #{options[:provider]}#{options[:model] ? " (#{options[:model]})" : ""}..."
+
+begin
+  review = case options[:provider].downcase
+  when "claude" then call_claude(full_prompt, options[:model])
+  when "openai" then call_openai(full_prompt, options[:model])
+  when "ollama" then call_ollama(full_prompt, options[:model])
+  when "gemini" then call_gemini(full_prompt, options[:model])
+  when "mistral" then call_mistral(full_prompt, options[:model])
+  else raise "Unknown provider: #{options[:provider]}. Use: claude, openai, ollama, gemini, mistral"
+  end
+
+  if options[:output]
+    File.write(options[:output], review)
+    puts "Review saved to #{options[:output]}"
+  else
+    puts "\n#{review}"
+  end
+rescue => e
+  puts "Error: #{e.message}"
+  exit 1
+end
