@@ -3,11 +3,22 @@
 Outil d'analyse de replays League of Legends avec coaching IA.
 Analyse tes games, detecte tes erreurs recurrentes, progresse.
 
-**3 modes d'utilisation :**
+**5 providers LLM** : Claude, OpenAI, Gemini, Mistral, Ollama
+**12 detectors** : death zones, CS, roam, teamfight, objectives, jungler, vision, items, comeback, damage...
+**4 modes d'utilisation :**
 - **Mode Rapide** : Riot API seulement, pas besoin de replay (positions par minute)
 - **Mode Live** : lance le replay en x8 + capture live data (items, KDA, events)
 - **Mode Frida** : lance le replay + capture positions en memoire (positions en temps reel)
 - **Mode Multi-game** : analyse croisee de plusieurs games pour trouver tes patterns d'erreurs
+
+## Quick Start
+
+```bash
+git clone https://github.com/SebSusini/lol-ia-coaching.git
+cd lol-ia-coaching
+bin/setup           # Installe tout (Ruby, Python, dependances)
+bin/quick-review    # Lance ta premiere review interactive
+```
 
 ## Setup
 
@@ -32,18 +43,21 @@ Analyse tes games, detecte tes erreurs recurrentes, progresse.
 
 ### Installation
 
+`bin/setup` fait tout automatiquement :
+- Verifie Ruby et Python
+- Installe les dependances (bundle install, pip install)
+- Cree `.env` a partir de `.env.example`
+- Guide la configuration (cle API Riot, pseudo)
+
+Ou manuellement :
+
 ```bash
-# Cloner le repo
 git clone https://github.com/SebSusini/lol-ia-coaching.git
 cd lol-ia-coaching
 
-# Installer les dependances Ruby
 cd extractor && bundle install && cd ..
-
-# Installer les dependances Python (pour les modes avances)
 pip install frida frida-tools zstandard
 
-# Configurer
 cp .env.example .env
 # Editer .env avec ta cle API Riot et ton pseudo
 ```
@@ -59,7 +73,42 @@ RIOT_SUMMONER_NAME=TonPseudo
 RIOT_TAG_LINE=EUW
 RIOT_REGION=europe
 RIOT_PLATFORM=euw1
+
+# LLM Provider (claude, openai, gemini, mistral, ollama)
+LLM_PROVIDER=claude
+
+# API Keys (celle de ton provider)
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+GEMINI_API_KEY=
+MISTRAL_API_KEY=
 ```
+
+## Commandes
+
+### Commandes principales
+
+| Commande | Description |
+|---|---|
+| `bin/setup` | Installation automatique (Ruby, Python, dependances, .env) |
+| `bin/quick-review` | Review interactive : montre tes games, tu choisis, review generee |
+| `bin/quick-review --html` | Idem + genere la visualisation minimap HTML |
+| `bin/quick-review --progression` | Idem + affiche ta progression |
+| `bin/progress` | Suivi de progression across games |
+| `bin/learn-champion Sylas mid` | Genere les connaissances champion/role via LLM |
+| `bin/review <file.rofl>` | Pipeline complet : decode .rofl + Riot API + review |
+
+### Commandes bas-niveau
+
+| Commande | Description |
+|---|---|
+| `ruby extractor/bin/fetch_timeline --match-id EUW1_XXX --output output/timeline.json` | Fetch la timeline Riot API |
+| `ruby extractor/bin/extract --timeline output/timeline.json --summoner "Name"` | Genere le review JSON |
+| `ruby extractor/bin/review-auto --timeline X --provider claude` | Review automatique via API LLM |
+| `ruby extractor/bin/review-auto --timeline X --provider claude --html` | Review auto + minimap HTML |
+| `ruby extractor/bin/record_replay output/live.json` | Enregistre un replay live (x8) |
+| `ruby extractor/bin/batch_analyze --count 5 --summoner "Name"` | Analyse multi-game batch |
+| `python3 tools/frida_scan.py output/positions.json` | Scanner memoire Frida |
 
 ## Utilisation
 
@@ -118,11 +167,97 @@ python3 tools/frida_scan.py output/positions.json
 Analyse croisee de plusieurs games pour trouver tes erreurs recurrentes.
 
 ```bash
-# Analyse automatique de tes 5 dernieres ranked
+# Via quick-review (interactif)
+bin/quick-review
+# Choisis "all" pour analyser les 5 dernieres games
+
+# Ou via batch (automatique)
 ruby extractor/bin/batch_analyze --count 5 --summoner "TonPseudo"
 ```
 
 **Ce que tu obtiens :** patterns d'erreurs recurrentes (zones de mort, vision, timing, damage).
+
+## Minimap Visualization
+
+Genere une visualisation HTML de la game sur la minimap : positions, morts, objectifs, wards.
+
+```bash
+# Via quick-review
+bin/quick-review --html
+# Genere output/EUW1_XXXX_visual.html
+
+# Via review-auto
+ruby extractor/bin/review-auto --timeline output/timeline.json --provider claude --html
+
+# Ouvre le fichier HTML dans ton navigateur
+open output/EUW1_XXXX_visual.html
+```
+
+La visualisation affiche :
+- La minimap de Summoner's Rift en fond
+- Les positions du joueur a chaque minute (trail)
+- Les morts marquees avec leur zone (dive, gank, river, overextend)
+- Les objectifs (dragons, barons, heralds)
+- Les events de la timeline
+
+## Progression Tracking
+
+Suis ta progression game apres game : KDA, CS/min, vision, deaths, winrate.
+
+```bash
+# Voir ta progression
+bin/progress
+
+# Filtrer par champion
+bin/progress --champion Sylas
+
+# Les N dernieres games
+bin/progress --last 10
+
+# Importer une review existante
+bin/progress --import output/EUW1_XXXX_review.json
+
+# Export JSON
+bin/progress --json
+```
+
+Exemple de rapport :
+
+```
+=== PROGRESSION (5 games) ===
+Win rate: 60% (3W 2L)
+KDA moyen: 6.2/4.1/7.8 (3.4)
+CS/min: 7.2 → 7.8 (amelioration)
+Deaths: 5.2 → 3.8 (amelioration)
+Vision score: 18 → 24 (amelioration)
+```
+
+La progression est enregistree automatiquement lors des `bin/quick-review`.
+
+## Auto-learning Champions
+
+Genere automatiquement les connaissances champion+role via LLM pour des reviews plus precises.
+
+```bash
+# Generer les connaissances pour un champion
+bin/learn-champion Gwen jungle
+bin/learn-champion Sylas mid
+bin/learn-champion "Bel'Veth" jungle
+
+# Forcer le re-generation
+bin/learn-champion Ahri mid --force
+```
+
+Si une cle API LLM est configuree dans `.env`, le fichier est rempli automatiquement avec :
+- Power spikes et timing
+- Combos et mecaniques
+- Matchups cles
+- Erreurs communes
+- Tips specifiques au role
+
+Sans cle API, un template vide est genere a remplir manuellement.
+
+Les fichiers sont sauvegardes dans `prompts/champions/` (ex: `sylas_mid.md`, `gwen_jungle.md`) et sont automatiquement inclus dans les prochaines reviews.
 
 ## 12 Detectors
 
@@ -146,28 +281,46 @@ ruby extractor/bin/batch_analyze --count 5 --summoner "TonPseudo"
 
 ```
 lol-ia-coaching/
-├── extractor/              # Pipeline Ruby (12 detectors)
+├── bin/                       # Commandes principales
+│   ├── setup                  # Installation automatique
+│   ├── quick-review           # Review interactive (--html, --progression)
+│   ├── review                 # Pipeline .rofl complet
+│   ├── learn-champion         # Auto-fill champion knowledge via LLM
+│   └── progress               # Suivi de progression CLI
+├── extractor/                 # Pipeline Ruby (12 detectors)
 │   ├── bin/
-│   │   ├── extract         # Genere la review JSON
-│   │   ├── fetch_timeline  # Fetch Riot API
-│   │   ├── record_replay   # Mode Live (localhost:2999)
-│   │   ├── record_positions # Mode Frida (wrapper Ruby)
-│   │   └── batch_analyze   # Mode Multi-game
+│   │   ├── extract            # Genere la review JSON
+│   │   ├── fetch_timeline     # Fetch Riot API
+│   │   ├── record_replay      # Mode Live (localhost:2999)
+│   │   ├── record_positions   # Mode Frida (wrapper Ruby)
+│   │   ├── batch_analyze      # Mode Multi-game
+│   │   └── review-auto        # Review automatique via API LLM (--html)
 │   └── lib/
 │       ├── riot_api_client.rb
 │       ├── extractor.rb
 │       ├── game_context.rb
 │       ├── item_resolver.rb
-│       ├── detectors/      # 12 detectors
-│       └── formatters/
+│       ├── visualizer.rb              # Minimap HTML visualization
+│       ├── progression_tracker.rb     # Progression tracking across games
+│       ├── champion_knowledge_generator.rb  # Auto-learn champion knowledge
+│       ├── detectors/                 # 12 detectors
+│       ├── formatters/
+│       │   └── review_formatter.rb
+│       ├── enrichers/
+│       └── filters/
 ├── tools/
-│   └── frida_scan.py       # Scanner memoire Frida
-├── decoder/                # Parsers ROFL2 + crypto research
+│   └── frida_scan.py          # Scanner memoire Frida
+├── decoder/                   # Parsers ROFL2 + crypto research
 ├── prompts/
-│   └── review.md           # Prompt template pour Claude
-├── .env                    # Config (gitignored)
-├── .env.example            # Template de config
-└── CLAUDE.md               # Contexte IA
+│   ├── review.md              # Prompt template pour Claude (304 lignes)
+│   ├── champions/             # Connaissances par champion (sylas_mid.md, gwen_jungle.md)
+│   └── roles/                 # Connaissances par role (jungle.md, mid.md, top.md)
+├── docs/                      # Specs, briefings, plans
+├── output/                    # JSON reviews, HTML visualizations (gitignored)
+├── replays/                   # Fichiers .rofl (gitignored)
+├── .env                       # Config (gitignored)
+├── .env.example               # Template de config
+└── CLAUDE.md                  # Contexte IA
 ```
 
 ## Exemple de review multi-game
@@ -197,8 +350,13 @@ TOP 3 ERREURS RECURRENTES :
 - [x] Multi-game analysis (erreurs recurrentes)
 - [x] Batch replay launcher via LCU API
 - [x] Prompt template pour Claude (tous roles)
+- [x] 5 LLM providers (Claude, OpenAI, Gemini, Mistral, Ollama)
+- [x] Minimap HTML visualization (--html flag)
+- [x] Progression tracking across games (bin/progress)
+- [x] Auto-learning champion/role knowledge (bin/learn-champion)
+- [x] Auto-install script (bin/setup)
+- [x] Interactive quick-review (bin/quick-review)
 - [ ] Interface web pour les reviews
-- [ ] API Claude automatisee (plus de copier/coller)
 - [ ] Decodage direct du .rofl (sans replay)
 
 ## Securite
