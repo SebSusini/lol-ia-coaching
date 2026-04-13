@@ -1,4 +1,4 @@
-# LoL IA Coaching — lol-ia-coaching
+# LoL IA Coaching
 
 GitHub: https://github.com/SebSusini/lol-ia-coaching
 
@@ -6,115 +6,81 @@ GitHub: https://github.com/SebSusini/lol-ia-coaching
 - Dev Ruby on Rails senior, pseudo LoL: Banditacciu#EUW, Emeraude 2, mid Sylas
 - Travaille sur Mac (Apple Silicon), joue a LoL sur Mac et Windows
 - Pragmatique, veut avancer vite, ne pas proposer d'arreter
+- Un pote joue Gwen jungle
 
-## Etat du projet (2026-04-13)
+## Etat du projet (V5 — 2026-04-13)
 
-### Ce qui MARCHE (V4)
-Pipeline complet avec 12 detectors :
-1. Riot API Timeline → kills, items, CS, gold, XP, positions par minute, objectives
-2. Live Client API (localhost:2999) → items, KDA, levels en temps reel pendant replay x8
-3. .rofl metadata → scoreboard complet fin de game
-4. 12 detectors Ruby : Death (avec zone classification), CS, Roam, Teamfight, Objective, Jungler tracking, Ward tracking, Item spike, Lane state, Comeback, Damage efficiency, Position tracker
-5. Review de coaching via Claude Code avec prompt template
-
-### Ce qui NE MARCHE PAS ENCORE
-Dechiffrement des paquets de mouvement ROFL2 pour positions chaque seconde.
-**Bloquer** : la cle SM4 est per-game, envoyee par le serveur GAMHS au client LoL avant le lancement du replay. Elle n'est PAS dans le fichier .rofl.
-**Solution** : intercepter la cle via Wireshark/Fiddler (voir docs/WINDOWS_SESSION_PLAN.md)
-
-## Architecture
-
+### Pipeline complet
 ```
-.rofl (metadata)     → scoreboard, KDA, damage, items
-Riot API Timeline    → events (kills, items, objectives), positions par minute
-Live Client API      → snapshots toutes les 2s pendant replay x8
-                           ↓
-                    [Ruby Extractor + 12 detectors]
-                           ↓
-                    review.json (36 KB, 75 events)
-                           ↓
-                    [Claude Code] → review de coaching
+Riot API Timeline → positions/min, kills, items, objectives
+Live Client API (localhost:2999) → items, KDA, levels toutes les 2s (replay x8)
+Frida memory scan → positions temps reel (~57 entites mobiles)
+.rofl metadata → scoreboard complet
+         ↓
+   Ruby Extractor (12 detectors)
+         ↓
+   review.json (36 KB, 75 events)
+         ↓
+   LLM (Claude/OpenAI/Gemini/Mistral/Ollama)
+         ↓
+   Review de coaching
 ```
 
-## Commandes
+### 12 Detectors
+Death (zone: dive/gank/river/overextend), DeathPositionClassifier, CS, Roam, Teamfight, Objective, PositionTracker, JunglerTracker, WardTracker, ItemSpikeDetector, LaneStateDetector, ComebackDetector, DamageEfficiencyDetector
 
+### Commandes principales
 ```bash
-# Voir les dernieres games
-ruby -r dotenv/load -e '...' (voir README.md)
+bin/setup              # Installation automatique
+bin/quick-review       # Review interactive (montre les games, tu choisis)
+bin/full-review        # Review avec replay live
 
-# Fetch timeline Riot API
-ruby extractor/bin/fetch_timeline --match-id EUW1_XXXXXXXXXX --output output/timeline.json
-
-# Enregistrer live data pendant replay x8
-ruby extractor/bin/record_replay output/live.json
-
-# Extraire la review
-ruby extractor/bin/extract --timeline output/timeline.json --summoner "Banditacciu" --output output/review.json
-
-# Parser un .rofl (metadata + blocs)
-python3 decoder/sm4_decoder.py replays/game.rofl --stats
+# Scripts bas-niveau
+ruby extractor/bin/fetch_timeline --match-id EUW1_XXX --output output/timeline.json
+ruby extractor/bin/extract --timeline output/timeline.json --summoner "Name"
+ruby extractor/bin/record_replay output/live.json        # Live recording (x8)
+ruby extractor/bin/review-auto --timeline X --provider claude  # API LLM auto
+ruby extractor/bin/batch_analyze --count 5 --summoner "Name"   # Batch
+python3 tools/frida_scan.py output/positions.json              # Frida positions
 ```
 
-## Crypto ROFL2 — Resume
-
-Le format ROFL2 (patch 14.11+) :
-- Header: RIOT + version 02 00 + file_hash (8 bytes) + game_version string
-- Chunks: header 17 bytes + payload zstd compressed (PAS de Blowfish, contrairement a ROFL1)
-- Metadata: JSON a la fin du fichier (gameLength, lastGameChunkId, lastKeyFrameId, statsJson)
-- Blocs dans les chunks: marker + timestamp + length + packet_id + param + payload
-
-Les paquets de mouvement (0x001c, 57K par game) sont chiffres avec SM4-CTR.
-La cle vient du serveur GAMHS (Game History Service), pas du fichier.
-
-Le binaire LoL Mac (universal: x86_64 + ARM64, tourne en ARM64 natif) contient :
-- SM4 encrypt/decrypt, SM3 hash, SHA-224
-- Movement handler vtable a 0x1022bf318 (ARM64), packet_id 0x1c confirme
-- Streaming decrypt functions dans la region 0x101c89000-0x101c8d000
-
-Tout le reverse engineering est documente dans docs/NEXT_SESSION_BRIEFING.md
-
-## Structure
-
+### Structure
 ```
-decoder/
-  sm4_decoder.py          # Parser ROFL2 complet + SM4 implementation
-  packet_decryptor.py     # HMAC-SM3-CTR + analyse entropie
-  movement_decoder.py     # Extraction paquets mouvement + Unicorn x86_64
-  arm64_decoder.py        # Analyse ARM64 + Unicorn ARM64
-  arm64_movement_crack.py # Brute-force handlers ARM64
-  batch_movement_parser.py # Analyse format batch
-extractor/
-  lib/
-    riot_api_client.rb    # Client Riot API v5
-    extractor.rb          # Orchestrateur principal
-    game_context.rb       # Context de game (participants, timeline)
-    item_resolver.rb      # Resolution item IDs → noms via Data Dragon
-    filters/              # MidLaneFilter (a generaliser)
-    detectors/            # 12 detectors (death, cs, roam, teamfight, objective,
-                          #   jungler, ward, item_spike, lane_state, comeback,
-                          #   damage_efficiency, position_tracker)
-    enrichers/            # Context enricher (placeholder)
-    formatters/           # ReviewFormatter (JSON compact)
-  bin/
-    extract               # CLI extraction
-    fetch_timeline        # CLI fetch Riot API
-    record_replay         # Enregistrement live pendant replay x8
-prompts/
-  review.md              # Prompt Claude pour reviews (tous roles)
-docs/
-  NEXT_SESSION_BRIEFING.md    # Briefing technique complet
-  WINDOWS_SESSION_PLAN.md     # Plan capture cle sur Windows
-  superpowers/specs/          # Design spec originale
-bin/
-  review                 # Orchestrateur shell
-.env                     # RIOT_API_KEY + summoner info (gitignored)
-.env.example             # Template
+bin/setup, quick-review          # Onboarding
+extractor/lib/detectors/         # 12 detectors Ruby
+extractor/lib/riot_api_client.rb # Client Riot API v5
+extractor/bin/                   # CLIs (extract, fetch_timeline, record_replay, review-auto, batch_analyze)
+tools/frida_scan.py              # Scanner memoire Frida
+decoder/                         # Parser ROFL2, SM4, ARM64 analysis
+prompts/review.md                # Prompt coaching 304 lignes
+prompts/champions/               # Connaissances par champion (gwen_jungle.md)
+prompts/roles/                   # Connaissances par role (jungle.md)
+docs/                            # Specs, briefings, plans
+.env                             # RIOT_API_KEY + LLM keys (gitignored)
 ```
 
-## Conventions
-- Ruby standard, pas de framework, classes independantes
-- Chaque detector: prend un GameContext, retourne un array de timeline events
-- JSON output suit le schema: meta, final_stats, timeline, patterns, gold_curve, position_map
-- Tests: RSpec dans extractor/spec/ (a ecrire)
-- Python pour le decoder (parser ROFL2, crypto)
-- Pas de Rust necessaire (Mowokuma abandonne)
+### Reverse engineering ROFL2
+- Parser ROFL2 complet (Python): header, chunks zstd, blocs, 259 types de paquets
+- Paquets de mouvement (0x001c): 57K par game, obfusques par le binaire du jeu
+- Crypto dans le binaire: SM4-CTR + HMAC-SM3 + SHA-224
+- Movement handler vtable ARM64: 0x1022bf318
+- Lookup tables: 0x101f37a00, 0x101f37b00
+- Frida PEUT s'attacher au replay viewer Mac (contourne Vanguard)
+- Positions trouvees en memoire comme float32 pairs (x, y)
+- Documentation: docs/NEXT_SESSION_BRIEFING.md, docs/WINDOWS_SESSION_PLAN.md
+
+### LLM Configuration (.env)
+```
+LLM_PROVIDER=claude              # claude, openai, gemini, mistral, ollama
+ANTHROPIC_API_KEY=               # Pour Claude
+OPENAI_API_KEY=                  # Pour OpenAI
+GEMINI_API_KEY=                  # Pour Gemini
+MISTRAL_API_KEY=                 # Pour Mistral
+```
+
+### Conventions
+- Ruby standard, classes independantes, pas de framework
+- Chaque detector: prend GameContext, retourne array de timeline events
+- JSON output: meta, final_stats, timeline, patterns, gold_curve, position_map
+- Python pour le decoder (ROFL2, crypto, Frida)
+- Prompt en francais, termes LoL en anglais
