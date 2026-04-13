@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "========================================="
+echo "  LoL IA Coaching — Installation"
+echo "========================================="
+echo ""
+
+# Detect OS
+OS="unknown"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    OS="mac"
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+    OS="windows"
+elif [[ "$OSTYPE" == "linux"* ]]; then
+    OS="linux"
+fi
+echo "OS detecte: $OS"
+
+# Check Ruby
+echo ""
+echo "[1/5] Verification de Ruby..."
+if command -v ruby &>/dev/null; then
+    RUBY_VERSION=$(ruby -v | head -1)
+    echo "  OK: $RUBY_VERSION"
+else
+    echo "  ERREUR: Ruby non installe."
+    if [[ "$OS" == "mac" ]]; then
+        echo "  Installe avec: brew install ruby"
+    elif [[ "$OS" == "windows" ]]; then
+        echo "  Installe depuis: https://rubyinstaller.org/"
+    fi
+    exit 1
+fi
+
+# Check Python
+echo ""
+echo "[2/5] Verification de Python..."
+if command -v python3 &>/dev/null; then
+    PY_VERSION=$(python3 --version)
+    echo "  OK: $PY_VERSION"
+else
+    echo "  ERREUR: Python 3 non installe."
+    echo "  Installe depuis: https://www.python.org/downloads/"
+    exit 1
+fi
+
+# Install Ruby dependencies
+echo ""
+echo "[3/5] Installation des dependances Ruby..."
+cd "$(dirname "$0")/../extractor"
+if command -v bundle &>/dev/null; then
+    bundle install --quiet
+    echo "  OK"
+else
+    echo "  Installation de bundler..."
+    gem install bundler --quiet
+    bundle install --quiet
+    echo "  OK"
+fi
+cd ..
+
+# Install Python dependencies
+echo ""
+echo "[4/5] Installation des dependances Python..."
+pip3 install frida frida-tools zstandard 2>/dev/null || pip3 install --user frida frida-tools zstandard 2>/dev/null || echo "  ATTENTION: pip install a echoue. Installe manuellement: pip install frida frida-tools zstandard"
+echo "  OK"
+
+# Setup .env
+echo ""
+echo "[5/5] Configuration..."
+if [ ! -f .env ]; then
+    cp .env.example .env
+    echo ""
+    echo "========================================="
+    echo "  CONFIGURATION REQUISE"
+    echo "========================================="
+    echo ""
+    echo "  1. Va sur https://developer.riotgames.com/"
+    echo "     Connecte-toi et copie ta cle API"
+    echo ""
+    echo "  2. Edite le fichier .env :"
+    echo "     RIOT_API_KEY=RGAPI-ta-cle-ici"
+    echo "     RIOT_SUMMONER_NAME=TonPseudo"
+    echo "     RIOT_TAG_LINE=EUW"
+    echo ""
+    if [[ "$OS" == "mac" ]]; then
+        echo "     nano .env"
+    else
+        echo "     notepad .env"
+    fi
+    echo ""
+else
+    # Check if API key is set
+    if grep -q "^RIOT_API_KEY=$" .env || grep -q "RGAPI-xxxxxxxx" .env; then
+        echo "  ATTENTION: Ta cle API Riot n'est pas configuree dans .env"
+        echo "  Edite .env et ajoute ta cle"
+    else
+        echo "  .env deja configure"
+    fi
+fi
+
+echo ""
+echo "========================================="
+echo "  Installation terminee !"
+echo "========================================="
+echo ""
+echo "  Commandes disponibles :"
+echo ""
+echo "  # Review rapide (API only, pas de replay)"
+echo "  bin/quick-review"
+echo ""
+echo "  # Review avec replay (lance le replay en x8)"
+echo "  bin/full-review"
+echo ""
+echo "  # Review multi-game (erreurs recurrentes)"
+echo "  bin/multi-review"
+echo ""
+echo "  Pour plus d'infos: cat README.md"
+echo ""

@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$SCRIPT_DIR"
+
+# Load .env
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | grep -v '^$' | xargs)
+fi
+
+SUMMONER="${RIOT_SUMMONER_NAME:-}"
+if [ -z "$SUMMONER" ]; then
+    echo "Erreur: RIOT_SUMMONER_NAME non configure dans .env"
+    echo "Lance d'abord: bin/setup"
+    exit 1
+fi
+
+echo "========================================="
+echo "  LoL IA Coaching — Review Rapide"
+echo "========================================="
+echo "  Summoner: $SUMMONER"
+echo ""
+
+# Step 1: Show recent games
+echo "[1/3] Tes dernieres games..."
+echo ""
+
+MATCHES=$(ruby -r dotenv/load -e '
+require_relative "extractor/lib/riot_api_client"
+client = RiotApiClient.new
+account = client.account_by_riot_id(ENV["RIOT_SUMMONER_NAME"], ENV["RIOT_TAG_LINE"] || "EUW")
+matches = client.match_history(account["puuid"], count: 10)
+
+matches.each_with_index do |match_id, i|
+  info = client.match_info(match_id)
+  you = info["info"]["participants"].find { |p| p["puuid"] == account["puuid"] }
+  duration = info["info"]["gameDuration"]
+  result = you["win"] ? "WIN" : "LOSS"
+  puts "  #{i+1}. #{match_id} | #{you["championName"]} #{you["teamPosition"]} | #{you["kills"]}/#{you["deaths"]}/#{you["assists"]} | #{result} | #{duration/60}min"
+  sleep 1.2
+end
+' 2>&1)
+
+echo "$MATCHES"
+echo ""
+
+# Step 2: Ask which game
+read -p "Quelle game analyser ? (numero 1-10, ou 'all' pour les 5 dernieres) : " CHOICE
+
+if [ "$CHOICE" = "all" ]; then
+    echo ""
+    echo "Mode multi-game — analyse des 5 dernieres games..."
+    # Get first 5 match IDs
+    MATCH_IDS=$(echo "$MATCHES" | head -5 | grep -o 'EUW1_[0-9]*')
+
+    for MATCH_ID in $MATCH_IDS; do
+        TIMELINE_FILE="output/${MATCH_ID}_timeline.json"
+        if [ ! -f "$TIMELINE_FILE" ]; then
+            echo "  Fetching $MATCH_ID..."
+            ruby extractor/bin/fetch_timeline --match-id "$MATCH_ID" --output "$TIMELINE_FILE" 2>/dev/null
+            sleep 1.5
+        fi
+    done
+
+    echo ""
+    echo "[2/3] Extraction des donnees..."
+    # Run cross-game analysis
+    ruby -r dotenv/load -e '
+    require_relative "extractor/lib/extractor"
+    require "json"
+
+    match_ids = ARGV
+    reviews = match_ids.filter_map do |mid|
+      tf = "output/#{mid}_timeline.json"
+      next unless File.exist?(tf)
+      Extractor.new(timeline_path: tf, summoner_name: ENV["RIOT_SUMMONER_NAME"]).extract
+    end
+
+    puts JSON.pretty_generate(reviews)
+    ' $MATCH_IDS > output/multi_review.json 2>/dev/null
+
+    echo "[3/3] La review multi-game est prete !"
+    echo ""
+    echo "  Ouvre Claude Code (ou ton IA preferee) et dis :"
+    echo ""
+    echo "  \"Lis prompts/review.md puis analyse output/multi_review.json"
+    echo "   et donne-moi mes erreurs recurrentes sur ces 5 games\""
+    echo ""
+
+else
+    # Single game
+    MATCH_ID=$(echo "$MATCHES" | sed -n "${CHOICE}p" | grep -o 'EUW1_[0-9]*')
+
+    if [ -z "$MATCH_ID" ]; then
+        echo "Choix invalide"
+        exit 1
+    fi
+
+    echo ""
+    echo "[2/3] Fetching $MATCH_ID..."
+    TIMELINE_FILE="output/${MATCH_ID}_timeline.json"
+    REVIEW_FILE="output/${MATCH_ID}_review.json"
+
+    if [ ! -f "$TIMELINE_FILE" ]; then
+        ruby extractor/bin/fetch_timeline --match-id "$MATCH_ID" --output "$TIMELINE_FILE"
+    fi
+
+    echo "[3/3] Extraction..."
+    ruby -r dotenv/load -e "
+    require_relative 'extractor/lib/extractor'
+    require 'json'
+    e = Extractor.new(timeline_path: '$TIMELINE_FILE', summoner_name: ENV['RIOT_SUMMONER_NAME'])
+    File.write('$REVIEW_FILE', JSON.pretty_generate(e.extract))
+    puts 'Review JSON: #{(File.size('$REVIEW_FILE') / 1024.0).round(1)} KB'
+    "
+
+    echo ""
+    echo "========================================="
+    echo "  Review prete !"
+    echo "========================================="
+    echo ""
+    echo "  Option 1 — Claude Code (gratuit) :"
+    echo "  Ouvre Claude Code et dis :"
+    echo "  \"Lis prompts/review.md puis analyse $REVIEW_FILE\""
+    echo ""
+    echo "  Option 2 — API automatique :"
+    echo "  ruby extractor/bin/review-auto --timeline $TIMELINE_FILE --provider claude"
+    echo "  (ou --provider openai / gemini / ollama)"
+    echo ""
+fi
