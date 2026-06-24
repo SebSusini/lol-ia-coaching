@@ -6,6 +6,10 @@ replays/*.rofl
 
 # Generated output
 output/*.json
+output/*.html
+
+# Local workspace tooling (machine-specific, contains local paths)
+CLAUDE.local.md
 
 # Decoder binary & build artifacts
 decoder/target/
